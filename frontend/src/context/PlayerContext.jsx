@@ -1,5 +1,5 @@
 import { createContext, useEffect, useRef, useState } from "react";
-import { songsData } from "../assets/assets.js";
+import axios from 'axios'
 
 export const PlayerContext = createContext();
 
@@ -7,8 +7,11 @@ const PlayerContextProvider = (props) => {
     const audioRef = useRef();
     const seekBg = useRef();
     const seekBar = useRef();
-    const [isLoading, setIsLoading] = useState(false);
+    const url = 'http://localhost:4000'
 
+    const [isLoading, setIsLoading] = useState(false);
+    const [songsData, setSongsData] = useState([])
+    const [albumsData, setAlbumsData] = useState([])
     const [track, setTrack] = useState(songsData[0]);
     const [playStatus, setPlayStatus] = useState(false);
     const [time, setTime] = useState({
@@ -40,47 +43,34 @@ const PlayerContextProvider = (props) => {
         setPlayStatus(false);
     };
 
-    const playWithId = async (id) => {
-        setIsLoading(true);
-        const newTrack = songsData.find(song => song.id === id);
-        await setTrack(newTrack);
-        try {
-            await audioRef.current.play();
-            setPlayStatus(true);
-        } catch (error) {
-            console.error("Playback error:", error);
-        }
-        setIsLoading(false);
-    };
+    const playWithId =  (id) => {
+         songsData.map((item) => {
+            if(id === item._id) {
+                setTrack(item)
+            }
+        })
+         audioRef.current.play()
+        setPlayStatus(true)
+    }
 
     const previous = async () => {
-        if (track.id > 0) {
-            setIsLoading(true);
-            const newTrack = songsData[track.id - 1];
-            await setTrack(newTrack);
-            try {
-                await audioRef.current.play();
-                setPlayStatus(true);
-            } catch (error) {
-                console.error("Playback error:", error);
+        songsData.map(async (item,index) => {
+            if(track._id === item._id && index > 0) {
+                await setTrack(songsData[index-1]);
+                await audioRef.current.play()
+                setPlayStatus(true)
             }
-            setIsLoading(false);
-        }
+        })
     };
 
     const next = async () => {
-        if (track.id < songsData.length - 1) {
-            setIsLoading(true);
-            const newTrack = songsData[track.id + 1];
-            await setTrack(newTrack);
-            try {
-                await audioRef.current.play();
-                setPlayStatus(true);
-            } catch (error) {
-                console.error("Playback error:", error);
+        songsData.map(async (item,index) => {
+            if(track._id === item._id && index < songsData.length -1) {
+                await setTrack(songsData[index+1]);
+                await audioRef.current.play()
+                setPlayStatus(true)
             }
-            setIsLoading(false);
-        }
+        })
     };
 
     const seekSong = (e) => {
@@ -92,6 +82,24 @@ const PlayerContextProvider = (props) => {
             }
         }
     };
+
+    const getSongsData = async () => {
+        try {
+            const response = await axios.get(`${url}/api/song/list`);
+            setSongsData(response.data.songs)
+            setTrack(response.data.songs[0])
+        } catch (error) {
+            console.log(error)
+        }
+    }
+    const getAlbumsData = async () => {
+        try {
+            const response = await axios.get(`${url}/api/album/list`);
+            setAlbumsData(response.data.albums)
+        } catch (error) {
+            console.log(error)
+        }
+    }
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -121,6 +129,8 @@ const PlayerContextProvider = (props) => {
             });
         };
 
+
+
         const handleLoadedMetadata = () => {
             const duration = audio.duration || 0;
             if (!isNaN(duration)) {
@@ -149,6 +159,10 @@ const PlayerContextProvider = (props) => {
             audio.removeEventListener('error', handleError);
         };
     }, [isLoading]);
+    useEffect(() => {
+        getSongsData();
+        getAlbumsData()
+    }, []);
 
     const contextValue = {
         audioRef,
@@ -166,7 +180,8 @@ const PlayerContextProvider = (props) => {
         next,
         previous,
         seekSong,
-        isLoading
+        isLoading,
+        songsData,albumsData,
     };
 
     return (

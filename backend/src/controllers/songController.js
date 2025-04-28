@@ -21,10 +21,12 @@ const addSong = async (req, res) => {
         const name = req.body.name;
         const desc = req.body.desc;
         const album = req.body.album;
-        const duration = `${Math.floor(audioUpload.duration / 60)}:${audioUpload.duration % 60}`
-
-        console.log("zzz", audioUpload.secure_url)
-        console.log("zzz2", imageUpload.secure_url)
+        const formatDuration = (seconds) => {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        };
+        const duration = formatDuration(audioUpload.duration)
 
         const songData = {
             name,
