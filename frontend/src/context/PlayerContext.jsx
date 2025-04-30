@@ -5,10 +5,12 @@ export const PlayerContext = createContext();
 
 const PlayerContextProvider = (props) => {
     const audioRef = useRef();
+    const volumeRef = useRef(null);
     const seekBg = useRef();
     const seekBar = useRef();
     const url = 'http://localhost:4000'
 
+    const [volume, setVolume] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const [songsData, setSongsData] = useState([])
     const [albumsData, setAlbumsData] = useState([])
@@ -32,6 +34,21 @@ const PlayerContextProvider = (props) => {
             totalTime: { second: 0, minute: 0 }
         });
     }, [track]);
+
+    const toggleMute = () => {
+        if (volume > 0) {
+            setVolume(0);
+            audioRef.current.volume = 0;
+        } else {
+            setVolume(1); // Unmute (restore to max volume)
+            audioRef.current.volume = 1;
+        }
+    };
+    const setAudioVolume = (vol) => {
+        vol = Math.max(0, Math.min(1, vol)); // Ensure volume is between 0 and 1
+        setVolume(vol);
+        audioRef.current.volume = vol;
+    };
 
     const play = () => {
         audioRef.current.play();
@@ -166,6 +183,7 @@ const PlayerContextProvider = (props) => {
 
     const contextValue = {
         audioRef,
+        volumeRef,
         seekBar,
         seekBg,
         track,
@@ -182,6 +200,7 @@ const PlayerContextProvider = (props) => {
         seekSong,
         isLoading,
         songsData,albumsData,
+        toggleMute,setAudioVolume,volume
     };
 
     return (

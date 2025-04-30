@@ -1,8 +1,19 @@
 import {assets} from "../assets/assets.js"
 import {PlayerContext} from "../context/PlayerContext.jsx";
-import {useContext} from "react";
+import {useContext, useEffect, useRef, useState} from "react";
 const Player = () => {
-    const {seekSong,next,previous,track,seekBar,seekBg,playStatus,play,pause,time} = useContext(PlayerContext);
+    const {seekSong,next,previous,track,seekBar,seekBg,playStatus,play,pause,time,setAudioVolume,toggleMute,volume,volumeRef} = useContext(PlayerContext);
+
+    const handleMuteClick = () => {
+        toggleMute()
+    };
+    const handleVolumeChange = (e) => {
+        const newVolume = parseFloat(e.target.value);
+        setAudioVolume(newVolume);
+    }
+
+
+
     return track?(
         <div className="h-[10%] bg-black flex justify-between items-center text-white px-4">
             <div className="hidden lg:flex items-center gap-4">
@@ -38,10 +49,17 @@ const Player = () => {
                 <img className="w-4" src={assets.mic_icon} alt=""/>
                 <img className="w-4" src={assets.queue_icon} alt=""/>
                 <img className="w-4" src={assets.speaker_icon} alt=""/>
-                <img className="w-4" src={assets.volume_icon} alt=""/>
-                <div className="w-20 bg-slate-50 h-1 rounded">
-
-                </div>
+                <img onClick={handleMuteClick} className="w-4 cursor-pointer" src={volume ? assets.volume_icon : assets.mute_icon} alt=""/>
+                <input
+                    ref={volumeRef}
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={volume}
+                    onChange={handleVolumeChange}
+                    className="h-1 rounded cursor-pointer"
+                />
                 <img className="w-4" src={assets.mini_player_icon} alt=""/>
                 <img className="w-4" src={assets.zoom_icon} alt=""/>
 
