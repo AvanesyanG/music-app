@@ -1,4 +1,3 @@
-import Navbar from "./Navbar.jsx";
 import {useParams} from "react-router-dom";
 import {assets} from "../assets/assets.js";
 import {useContext, useEffect, useState} from "react";
@@ -7,18 +6,20 @@ import {PlayerContext} from "../context/PlayerContext.jsx";
 const DisplayAlbum = ({album}) => {
     const {playWithId,albumsData,songsData} = useContext(PlayerContext)
     const {id} = useParams();
-    const [albumData,setAlbumData] = useState('')
+    const [albumData,setAlbumData] = useState(album || '')
 
     useEffect(() => {
-        albumsData.map((item) => {
-            if(item._id === id) {
-                setAlbumData(item)
+        if (id && albumsData.length > 0) {
+            const currentAlbum = albumsData.find(item => item._id === id);
+            if (currentAlbum) {
+                setAlbumData(currentAlbum);
+                console.log("Setting album data:", currentAlbum);
             }
-        })
-    },[])
-    return albumData?(
+        }
+    }, [id, albumsData]);
+    
+    return albumData ? (
         <>
-            <Navbar/>
             <div className="mt-10 flex gap-8 flex-col md:flex-row md:items-end">
                 <img className="w-48 rounded" src={albumData.image} alt=""/>
                 <div className="flex flex-col">
@@ -41,8 +42,7 @@ const DisplayAlbum = ({album}) => {
                 <img className="m-auto w-4" src={assets.clock_icon} alt=""/>
             </div>
             <hr/>
-            {
-                songsData.filter((item)=>item.album === album.name).map((item, index) => (
+            {songsData.filter((item)=>item.album === albumData.name).map((item, index) => (
                 <div onClick={()=>playWithId(item._id)} key={index} className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-2 items-center text-[#a7a7a7] hover:bg-[#ffffff2b] cursor-pointer">
                     <p className="text-white ">
                         <b className="mr-4 text-[#a7a7a7]">{index+1}</b>
@@ -53,11 +53,9 @@ const DisplayAlbum = ({album}) => {
                     <p className="text-[15px] hidden sm:block">5 days ago</p>
                     <p className="text-[15px] text-center">{item.duration}</p>
                 </div>
-
-            ))
-            }
+            ))}
         </>
-    ): null
+    ) : null;
 };
 
 export default DisplayAlbum;

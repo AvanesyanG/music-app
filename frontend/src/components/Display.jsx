@@ -1,38 +1,32 @@
 import {Route, Routes, useLocation} from "react-router-dom";
 import DisplayHome from "./DisplayHome.jsx";
 import DisplayAlbum from "./DisplayAlbum.jsx";
-import {useContext, useEffect, useRef} from "react";
+import {useContext} from "react";
 import {PlayerContext} from "../context/PlayerContext.jsx";
 
 const Display = () => {
-    const {albumsData} = useContext(PlayerContext)
+    const {albumsData} = useContext(PlayerContext);
+    const location = useLocation();
+    const isAlbum = location.pathname.includes("album");
+    const albumId = isAlbum ? location.pathname.split("/").pop() : '';
 
-    const displayRef = useRef()
-    const location = useLocation()
-    const isAlbum =location.pathname.includes("album");
-    const albumId= isAlbum ? location.pathname.split("/").pop() : '';
-    const bgColor = isAlbum && albumsData.length > 0 ? albumsData.find((x)=>(x._id == albumId)).bgColor : "#121212"
-
-    useEffect(() => {
-        if(isAlbum) {
-            displayRef.current.style.background = `linear-gradient(${bgColor},#121212)`
-        }
-        else {
-            displayRef.current.style.background = "#121212"
-        }
-
-    });
     return (
-        <div ref={displayRef} className="w-[100%] m-2 px-6 pt-4 rounded bg-[#121212] text-white overflow-auto lg:w-[75%] lg:ml-0">
-            {albumsData.length > 0
-            ? <Routes>
-                    <Route path="/" element={<DisplayHome />} />
-                    <Route path="/album/:id" element={<DisplayAlbum album={albumsData.find((x)=>(x._id == albumId))} />} />
-            </Routes> : null
-            }
-
-
-
+        <div className="h-full flex flex-col text-white">
+            <div className="flex-1 overflow-auto">
+                {albumsData && albumsData.length > 0 ? (
+                    <Routes>
+                        <Route path="/" element={<DisplayHome />} />
+                        <Route path="/library" element={<DisplayHome />} />
+                        <Route path="album/:id" element={<DisplayAlbum album={albumsData.find((x)=>(x._id == albumId))} />} />
+                        <Route path="/library/album/:id" element={<DisplayAlbum album={albumsData.find((x)=>(x._id == albumId))} />} />
+                        <Route path="*" element={<DisplayHome />} />
+                    </Routes>
+                ) : (
+                    <div className="flex items-center justify-center h-full">
+                        <div className="w-16 h-16 border-4 border-gray-400 border-t-green-800 rounded-full animate-spin"></div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

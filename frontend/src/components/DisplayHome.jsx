@@ -1,34 +1,42 @@
-import Navbar from "./Navbar.jsx";
 import AlbumItem from "./AlbumItem.jsx";
 import SongItem from "./SongItem.jsx";
 import {useContext} from "react";
 import {PlayerContext} from "../context/PlayerContext.jsx";
 
-
 const DisplayHome = () => {
     const {songsData,albumsData} = useContext(PlayerContext);
     return (
         <>
-            <Navbar/>
             <div className="mb-4">
-                <h1 className="my-5 font-bold text-2xl">Featured Charts</h1>
-                <div className="flex overflow-auto ">
+                <h1 className="my-4 font-bold text-xl pl-3.5">Albums</h1>
+                <div className="flex gap-2 overflow-x-auto pb-4">
                     {albumsData.map((item, index) => (
-                        <AlbumItem key={index} name={item.name} description={item.desc} id={item._id}
-                                   image={item.image}/>))}
-
+                        <AlbumItem 
+                            key={index} 
+                            name={item.name} 
+                            description={item.desc} 
+                            id={item._id}
+                            image={item.image}
+                        />
+                    ))}
                 </div>
             </div>
-            <div className="mb-4">
-                <h1 className="my-5 font-bold text-2xl">Today's biggest hits</h1>
-                <div className="flex overflow-auto ">
-                    {songsData.map((item, index) => (
-                        <SongItem key={index} name={item.name} description={item.desc} id={item._id} image={item.image}/>))}
-
+            {songsData && songsData.length > 0 && (
+                <div className="mb-4">
+                    <h1 className="my-4 font-bold text-xl pl-3.5">Songs</h1>
+                    <div className="flex gap-2 overflow-x-auto pb-4">
+                        {songsData.map((item, index) => (
+                            <SongItem 
+                                key={index} 
+                                name={item.name} 
+                                description={item.desc} 
+                                id={item._id} 
+                                image={item.image}
+                            />
+                        ))}
+                    </div>
                 </div>
-            </div>
-
-
+            )}
         </>
     );
 };

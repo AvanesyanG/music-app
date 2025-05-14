@@ -102,19 +102,27 @@ const PlayerContextProvider = (props) => {
 
     const getSongsData = async () => {
         try {
+            setIsLoading(true);
             const response = await axios.get(`${url}/api/song/list`);
-            setSongsData(response.data.songs)
-            setTrack(response.data.songs[0])
+            setSongsData(response.data.songs);
+            if (response.data.songs.length > 0) {
+                setTrack(response.data.songs[0]);
+            }
         } catch (error) {
-            console.log(error)
+            console.error('Error fetching songs:', error);
+            setSongsData([]);
+        } finally {
+            setIsLoading(false);
         }
     }
+
     const getAlbumsData = async () => {
         try {
             const response = await axios.get(`${url}/api/album/list`);
-            setAlbumsData(response.data.albums)
+            setAlbumsData(response.data.albums);
         } catch (error) {
-            console.log(error)
+            console.error('Error fetching albums:', error);
+            setAlbumsData([]);
         }
     }
 
