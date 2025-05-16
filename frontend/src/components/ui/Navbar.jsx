@@ -2,7 +2,7 @@ import {assets} from "../../assets/assets.js";
 import {useNavigate, useLocation} from "react-router-dom";
 import { useRef, useEffect, useState, useContext } from "react";
 import { PlayerContext } from "../../context/PlayerContext.jsx";
-
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
 const Navbar = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -135,8 +135,21 @@ const Navbar = () => {
                 <p className="bg-black text-white py-1.5 px-4 rounded-full text-[15px] cursor-pointer hover:bg-gray-900 transition-colors">
                     Install App
                 </p>
-                <div className="bg-purple-500 text-black w-8 h-8 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-600 transition-colors">
-                    G
+                <div className=" text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer ">
+                    <SignedOut>
+                        <SignInButton>
+                            <button className="p-1.5  rounded-full flex items-center justify-center hover:bg-white hover:text-black transition-colors ">Login</button>
+                        </SignInButton>
+                    </SignedOut>
+                    <SignedIn>   
+                        <UserButton
+                            appearance={{
+                                elements: {
+                                    userButtonAvatarBox: "w-8 h-8", // Clamp avatar size
+                                },
+                            }}
+                        />
+                    </SignedIn>
                 </div>
             </div>
         </div>
