@@ -1,14 +1,13 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout.jsx";
-import Display from "./components/Display.jsx";
-import Login from "./pages/auth/Login.jsx";
-import MoodSelector from "./pages/mood/MoodSelector.jsx";
-import PageTransition from "./components/PageTransition.jsx";
-import Navbar from "./components/Navbar.jsx";
+import Display from "./features/library/Display.jsx";
+import Login from "./features/auth/Login.jsx";
+import MoodSelector from "./features/mood/MoodSelector.jsx";
 import { useEffect, useState, useContext } from "react";
 import { PlayerContext } from "./context/PlayerContext.jsx";
-import SearchPage from "./components/SearchPage.jsx";
-
+import SearchPage from "./features/search/SearchPage.jsx";
+import PageTransition from "./components/ui/PageTransition.jsx";
+import Navbar from "./components/ui/Navbar.jsx";
 const App = () => {
     // Set back to true until we implement real auth
     const isAuthenticated = true;
