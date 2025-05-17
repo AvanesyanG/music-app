@@ -1,5 +1,7 @@
 import cloudinary from "../config/cloudinary.js";
 import songModel from "../models/songModel.js";
+import albumModel from "../models/albumModel.js";
+import mongoose from "mongoose";
 
 const addSong = async (req, res) => {
     try {
@@ -18,48 +20,66 @@ const addSong = async (req, res) => {
         const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
             folder: "covers"
         });
-        const name = req.body.name;
-        const desc = req.body.desc;
-        const album = req.body.album;
+
+        const {name, desc, album: albumName} = req.body;
+        
+        // Find album by name and get its ID
+        let album = null;
+        if (albumName && albumName !== "none") {
+            const foundAlbum = await albumModel.findOne({ name: albumName });
+            if (foundAlbum) {
+                album = foundAlbum._id; // This is already an ObjectId
+            }
+        }
+
         const formatDuration = (seconds) => {
             const mins = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
             return `${mins}:${secs.toString().padStart(2, '0')}`;
         };
-        const duration = formatDuration(audioUpload.duration)
+        const duration = formatDuration(audioUpload.duration);
 
         const songData = {
             name,
             desc,
-            album,
+            album, // This will be null or a valid ObjectId
             file: audioUpload.secure_url,
             image: imageUpload.secure_url,
             duration: duration.toString()
-        }
-        const song = songModel(songData);
+        };
+
+        console.log("Creating song with data:", songData);
+
+        const song = new songModel(songData);
         await song.save();
-        res.json({success:true,message:"Song added successfully"})
+        res.json({success: true, message: "Song added successfully"});
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).json({ success: false });
+        res.status(500).json({ 
+            success: false, 
+            error: error.message,
+            details: error.toString()
+        });
     }
 }
 
 const listSong = async (req,res) => {
     try {
-        const allSongs = await songModel.find({})
+        const allSongs = await songModel.find({}).populate('album','name')
         res.json({success:true,songs:allSongs})
-
     } catch (error) {
-        res.json({success:false})
+        console.error('Error listing songs:', error);
+        res.json({success:false, error: error.message})
     }
 }
+
 const removeSong = async (req,res) => {
     try {
         await songModel.findByIdAndDelete(req.body.id)
         res.json({success:true,message:"Song removed successfully"})
-    }catch (error) {
-        res.json({success:false})
+    } catch (error) {
+        console.error('Error removing song:', error);
+        res.json({success:false, error: error.message})
     }
 }
 

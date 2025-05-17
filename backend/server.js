@@ -5,7 +5,8 @@ import 'dotenv/config';
 import connectDB from './src/config/mongodb.js';
 import songRouter from './src/routes/songRoute.js';
 import albumRouter from './src/routes/albumRoute.js';
-
+import userRouter from './src/routes/userRoute.js';
+import authRouter from './src/routes/authRoute.js';
 await connectDB().catch(console.dir);
 
 const app = express();
@@ -16,6 +17,8 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
+app.use('/api/auth',authRouter)
+app.use('/api/users',userRouter)
 app.use('/api/song', songRouter);
 app.use('/api/album', albumRouter);
 app.get('/', (req, res) => res.send('API working'));
