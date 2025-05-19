@@ -208,7 +208,8 @@ const PlayerContextProvider = (props) => {
         seekSong,
         isLoading,
         songsData,albumsData,
-        toggleMute,setAudioVolume,volume
+        toggleMute,setAudioVolume,volume,
+        getSongsData
     };
 
     return (

@@ -8,6 +8,8 @@ import { PlayerContext } from "./context/PlayerContext.jsx";
 import SearchPage from "./features/search/SearchPage.jsx";
 import PageTransition from "./components/ui/PageTransition.jsx";
 import Navbar from "./components/ui/Navbar.jsx";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
     // Set back to true until we implement real auth
@@ -38,6 +40,7 @@ const App = () => {
 
     return (
         <MainLayout>
+            <ToastContainer />
             <div className="w-full h-full relative">
                 <div 
                     className={`w-full h-full ${background} transition-all duration-500`}
