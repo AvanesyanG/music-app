@@ -15,7 +15,7 @@ const Navbar = () => {
         mood: useRef(null)
     };
     
-    const isAlbumRoute = location.pathname.includes('/library/album/');
+    const isAlbumRoute = location.pathname.includes('/album/');
     const albumId = isAlbumRoute ? location.pathname.split("/").pop() : null;
     const currentAlbum = albumId ? albumsData.find(x => x._id === albumId) : null;
 
@@ -145,7 +145,7 @@ const Navbar = () => {
                         <UserButton
                             appearance={{
                                 elements: {
-                                    userButtonAvatarBox: "w-8 h-8", // Clamp avatar size
+                                    userButtonAvatarBox: "w-8 h-8",
                                 },
                             }}
                         />

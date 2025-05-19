@@ -8,6 +8,7 @@ import { PlayerContext } from "./context/PlayerContext.jsx";
 import SearchPage from "./features/search/SearchPage.jsx";
 import PageTransition from "./components/ui/PageTransition.jsx";
 import Navbar from "./components/ui/Navbar.jsx";
+
 const App = () => {
     // Set back to true until we implement real auth
     const isAuthenticated = true;
@@ -20,17 +21,15 @@ const App = () => {
         if (location.pathname === "/") {
             setBackground("bg-[#1E293B]");
             setCurrentAlbum(null);
-        } else if (location.pathname.includes("/library/album/")) {
+        } else if (location.pathname.includes("/album/")) {
             const albumId = location.pathname.split("/").pop();
             const album = albumsData.find(x => x._id === albumId);
-            console.log("Album data:", album);
-            setCurrentAlbum(album);
             if (album?.bgColor) {
-                console.log("Applying color:", album.bgColor);
                 setBackground(`bg-[${album.bgColor}]`);
             } else {
                 setBackground("bg-[#1E293B]");
             }
+            setCurrentAlbum(album);
         } else {
             setBackground("bg-[#1E293B]");
             setCurrentAlbum(null);
@@ -69,49 +68,10 @@ const App = () => {
                         <div className="w-full h-full">
                             <div className="w-full h-full p-6 pt-[72px]">
                                 <Routes>
-                                    {/* Public routes */}
-                                    <Route 
-                                        path="/auth/login" 
-                                        element={
-                                            !isAuthenticated 
-                                                ? <Login /> 
-                                                : <Navigate to="/" replace />
-                                        } 
-                                    />
-
-                                    {/* Protected routes */}
-                                    <Route 
-                                        path="/" 
-                                        element={
-                                            isAuthenticated 
-                                                ? <Display /> 
-                                                : <Navigate to="/auth/login" replace />
-                                        } 
-                                    />
-                                    <Route 
-                                        path="/library/*" 
-                                        element={
-                                            isAuthenticated 
-                                                ? <Display /> 
-                                                : <Navigate to="/auth/login" replace />
-                                        } 
-                                    />
-                                    <Route 
-                                        path="/mood" 
-                                        element={
-                                            isAuthenticated 
-                                                ? <MoodSelector /> 
-                                                : <Navigate to="/auth/login" replace />
-                                        } 
-                                    />
-                                    <Route 
-                                        path="/search" 
-                                        element={
-                                            isAuthenticated 
-                                                ? <SearchPage /> 
-                                                : <Navigate to="/auth/login" replace />
-                                        } 
-                                    />
+                                    <Route path="/auth/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />} />
+                                    <Route path="/mood" element={isAuthenticated ? <MoodSelector /> : <Navigate to="/auth/login" replace />} />
+                                    <Route path="/search" element={isAuthenticated ? <SearchPage /> : <Navigate to="/auth/login" replace />} />
+                                    <Route path="/*" element={isAuthenticated ? <Display /> : <Navigate to="/auth/login" replace />} />
                                 </Routes>
                             </div>
                         </div>

@@ -1,14 +1,11 @@
-import {Route, Routes, useLocation} from "react-router-dom";
-import DisplayHome from "./DisplayHome.jsx";
 import {useContext} from "react";
 import DisplayAlbum from "./DisplayAlbum.jsx";
 import {PlayerContext} from "../../context/PlayerContext.jsx";
+import {Routes, Route} from "react-router-dom";
+import DisplayHome from "./DisplayHome.jsx";    
 
 const Display = () => {
     const {albumsData} = useContext(PlayerContext);
-    const location = useLocation();
-    const isAlbum = location.pathname.includes("album");
-    const albumId = isAlbum ? location.pathname.split("/").pop() : '';
 
     return (
         <div className="h-full flex flex-col text-white">
@@ -16,9 +13,7 @@ const Display = () => {
                 {albumsData && albumsData.length > 0 ? (
                     <Routes>
                         <Route path="/" element={<DisplayHome />} />
-                        <Route path="/library" element={<DisplayHome />} />
-                        <Route path="album/:id" element={<DisplayAlbum album={albumsData.find((x)=>(x._id == albumId))} />} />
-                        <Route path="/library/album/:id" element={<DisplayAlbum album={albumsData.find((x)=>(x._id == albumId))} />} />
+                        <Route path="album/:id" element={<DisplayAlbum />} />
                         <Route path="*" element={<DisplayHome />} />
                     </Routes>
                 ) : (

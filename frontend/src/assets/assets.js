@@ -1,4 +1,7 @@
 import bell_icon from './bell.png'
+import upload_added from './upload_added.png'
+import upload_song from './upload_song.png'
+import upload_area from './upload_area.png'
 import home_icon from './home.png'
 import like_icon from './like.png'
 import loop_icon from './loop.png'
@@ -44,6 +47,9 @@ import song2 from  './song2.mp3'
 import song3 from  './song3.mp3'
 
 export const assets = {
+    upload_added,
+    upload_song,
+    upload_area,
     bell_icon,
     home_icon,
     like_icon,
