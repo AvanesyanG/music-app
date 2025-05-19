@@ -13,7 +13,6 @@ const SongItem = ({ name, image, desc, id }) => {
             const response = await axios.delete(`${url}/api/song/remove/${id}`);
             if (response.data.message) { // Changed from response.data.success to response.data.message
                 toast.success(response.data.message);
-                getSongsData(); // Refresh the songs list
             } else {
                 toast.error("Failed to delete song");
             }
