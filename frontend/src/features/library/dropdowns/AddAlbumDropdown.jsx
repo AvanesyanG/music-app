@@ -3,8 +3,10 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { assets } from "../../../assets/assets";
 import ClickOutsideWrapper from "../../../components/ui/ClickOutsideWrapper";
+import { useAuth } from '@clerk/clerk-react';
 
 const AddAlbumDropdown = ({ isOpen, onClose, anchorRef }) => {
+    const { getToken } = useAuth();
     const url = "http://localhost:4000";
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
 
@@ -38,13 +40,19 @@ const AddAlbumDropdown = ({ isOpen, onClose, anchorRef }) => {
         e.preventDefault();
         setLoading(true);
         try {
+            const token = await getToken();
             const formData = new FormData();
             formData.append("image", image);
             formData.append("name", name);
             formData.append("desc", desc);
             formData.append("bgColor", color);
             
-            const response = await axios.post(`${url}/api/album/add`, formData);
+            const response = await axios.post(`${url}/api/album/add`, formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
             if (response.data.success) {
                 toast.success("Album added");
                 resetForm();

@@ -2,17 +2,25 @@ import { PlayerContext } from "../../context/PlayerContext.jsx";
 import { useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { useAuth } from '@clerk/clerk-react';
 
 const SongItem = ({ name, image, desc, id }) => {
     const { playWithId, getSongsData } = useContext(PlayerContext);
+    const { getToken } = useAuth();
     const url = "http://localhost:4000";
 
     const handleDelete = async (e) => {
         e.stopPropagation(); // Prevent triggering the play function
         try {
-            const response = await axios.delete(`${url}/api/song/remove/${id}`);
-            if (response.data.message) { // Changed from response.data.success to response.data.message
+            const token = await getToken();
+            const response = await axios.delete(`${url}/api/song/remove/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            if (response.data.message) {
                 toast.success(response.data.message);
+                getSongsData(); // Refresh the songs list
             } else {
                 toast.error("Failed to delete song");
             }

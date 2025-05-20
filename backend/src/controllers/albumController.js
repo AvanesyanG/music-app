@@ -1,111 +1,118 @@
-import {v2 as cloudinary} from 'cloudinary';
-import albumModel from '../models/albumModel.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import cloudinary from "../config/cloudinary.js";
+import albumModel from "../models/albumModel.js";
+import songModel from "../models/songModel.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const addDefaultAlbum = async (req, res) => {
+const addDefaultAlbum = async (userId) => {
     try {
-        // Check if default album already exists
-        const existingAlbum = await albumModel.findOne({ name: "Favorites" });
+        // Check if user already has a Favorites album
+        const existingAlbum = await albumModel.findOne({ name: "Favorites", userId });
         if (existingAlbum) {
-            console.log("Default album already exists");
-            return res ? res.json({success: true, message: "Default album already exists"}) : null;
+            return existingAlbum;
         }
 
-        // Construct the correct path to fav.jpg
-        const imagePath = path.join(__dirname, '../../../frontend/src/assets/fav.jpg');
-        console.log("Attempting to upload image from:", imagePath);
-
-        // Upload default image to cloudinary
-        const imageUpload = await cloudinary.uploader.upload(imagePath, {
-            resource_type: "image"
+        // Create default album for the user with a simple default image
+        const defaultAlbum = new albumModel({
+            name: "Favorites",
+            desc: "Your favorite songs",
+            bgColor: "#1DB954",
+            image: "https://res.cloudinary.com/dxqyvj1yn/image/upload/v1716182400/covers/default-album.png",
+            userId
         });
 
-        console.log("Image uploaded successfully:", imageUpload.secure_url);
-
-        const albumData = {
-            name: "Favorites",
-            desc: "Your favorite tracks collection",
-            bgColor: "#1E293B",
-            image: imageUpload.secure_url
-        };
-
-        const album = albumModel(albumData);
-        await album.save();
-        console.log("Default album created successfully");
-        if (res) {
-            res.json({success: true, message: "Default album created successfully"});
-        }
+        await defaultAlbum.save();
+        return defaultAlbum;
     } catch (error) {
         console.error("Error creating default album:", error);
-        if (res) {
-            res.json({success: false, error: error.message});
-        }
+        throw error;
     }
 };
 
 const addAlbum = async (req, res) => {
     try {
-        const name = req.body.name;
-        const desc = req.body.desc;
-        const bgColor = req.body.bgColor;
+        const { userId } = req.auth; // Get userId from Clerk auth
+        const { name, desc, bgColor } = req.body;
         const imageFile = req.file;
-        const imageUpload = await cloudinary.uploader.upload(imageFile.path,{resource_type:"image"});
+
+        const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
+            folder: "covers"
+        });
 
         const albumData = {
             name,
             desc,
             bgColor,
-            image: imageUpload.secure_url
-        }
-        const album = albumModel(albumData);
-        await album.save();
-        res.json({success:true,message:"Album added successfully"})
+            image: imageUpload.secure_url,
+            userId // Add userId to album data
+        };
 
+        const album = new albumModel(albumData);
+        await album.save();
+        
+        res.json({ success: true, message: "Album added successfully" });
     } catch (error) {
-        res.json({success:false})
+        console.error('Error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message,
+            details: error.toString()
+        });
     }
-}
+};
 
 const listAlbum = async (req, res) => {
     try {
-        const allAlbums = await albumModel.find({});
-        console.log("Current number of albums:", allAlbums.length);
+        const { userId } = req.auth; // Get userId from Clerk auth
         
-        // If no albums exist, create the default album
-        if (allAlbums.length === 0) {
-            console.log("No albums found, creating default album...");
-            await addDefaultAlbum(req, res);
-            const updatedAlbums = await albumModel.find({});
-            console.log("Albums after creating default:", updatedAlbums.length);
-            return res.json({success:true, albums:updatedAlbums});
-        } else {
-            return res.json({success:true, albums:allAlbums});
+        // Get all albums for the user
+        const albums = await albumModel.find({ userId }).populate('songs');
+        
+        // If no albums exist, create a default album
+        if (albums.length === 0) {
+            const defaultAlbum = await addDefaultAlbum(userId);
+            albums.push(defaultAlbum);
         }
+        
+        res.json({ success: true, albums });
     } catch (error) {
-        console.error("Error in listAlbum:", error);
-        return res.json({success:false, error: error.message})
+        console.error('Error listing albums:', error);
+        res.json({ success: false, error: error.message });
     }
-}
+};
 
 const removeAlbum = async (req, res) => {
     try {
-        const albumToDelete = await albumModel.findById(req.body.id);
+        const { userId } = req.auth; // Get userId from Clerk auth
+        const { id } = req.params;
         
-        // Don't allow deletion of the Favorites album
-        if (albumToDelete && albumToDelete.name === "Favorites") {
-            return res.json({success:false, message:"Cannot delete the Favorites album"});
+        // Find the album and check ownership
+        const album = await albumModel.findOne({ _id: id, userId });
+        if (!album) {
+            return res.status(403).json({ 
+                success: false, 
+                message: "Unauthorized to delete this album" 
+            });
         }
-        
-        await albumModel.findByIdAndDelete(req.body.id);
-        res.json({success:true,message:"Album removed successfully"});
-    } catch (error) {
-        res.json({success:false})
-    }
-}
 
-export {addAlbum, listAlbum, removeAlbum, addDefaultAlbum};
+        // Prevent deletion of Favorites album
+        if (album.name === "Favorites") {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Cannot delete the Favorites album" 
+            });
+        }
+
+        // Remove album reference from all songs
+        await songModel.updateMany(
+            { album: album._id },
+            { $unset: { album: 1 } }
+        );
+        
+        await albumModel.findByIdAndDelete(id);
+        res.status(200).json({ success: true, message: "Album removed successfully" });
+    } catch (error) {
+        console.error('Error removing album:', error);
+        res.json({ success: false, error: error.message });
+    }
+};
+
+export { addAlbum, listAlbum, removeAlbum, addDefaultAlbum };

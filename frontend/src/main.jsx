@@ -15,11 +15,11 @@ if (!PUBLISHABLE_KEY) {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
       <BrowserRouter>
-          <PlayerContextProvider>
-            <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl='/'>
-                <App />
-            </ClerkProvider>
-          </PlayerContextProvider>
+          <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl='/'>
+              <PlayerContextProvider>
+                  <App />
+              </PlayerContextProvider>
+          </ClerkProvider>
       </BrowserRouter>
   </StrictMode>,
 )

@@ -1,9 +1,11 @@
 import { createContext, useEffect, useRef, useState } from "react";
 import axios from 'axios'
+import { useAuth } from '@clerk/clerk-react';
 
 export const PlayerContext = createContext();
 
 const PlayerContextProvider = (props) => {
+    const { getToken, isLoaded, isSignedIn } = useAuth();
     const audioRef = useRef();
     const volumeRef = useRef(null);
     const seekBg = useRef();
@@ -103,7 +105,12 @@ const PlayerContextProvider = (props) => {
     const getSongsData = async () => {
         try {
             setIsLoading(true);
-            const response = await axios.get(`${url}/api/song/list`);
+            const token = await getToken();
+            const response = await axios.get(`${url}/api/song/list`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
             setSongsData(response.data.songs);
             if (response.data.songs.length > 0) {
                 setTrack(response.data.songs[0]);
@@ -118,7 +125,12 @@ const PlayerContextProvider = (props) => {
 
     const getAlbumsData = async () => {
         try {
-            const response = await axios.get(`${url}/api/album/list`);
+            const token = await getToken();
+            const response = await axios.get(`${url}/api/album/list`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
             setAlbumsData(response.data.albums);
         } catch (error) {
             console.error('Error fetching albums:', error);
@@ -185,9 +197,11 @@ const PlayerContextProvider = (props) => {
         };
     }, [isLoading]);
     useEffect(() => {
-        getSongsData();
-        getAlbumsData()
-    }, []);
+        if (isLoaded && isSignedIn) {
+            getSongsData();
+            getAlbumsData();
+        }
+    }, [isLoaded, isSignedIn]);
 
     const contextValue = {
         audioRef,

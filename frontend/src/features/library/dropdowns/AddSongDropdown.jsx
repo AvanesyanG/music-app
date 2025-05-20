@@ -3,8 +3,10 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { assets } from "../../../assets/assets";
 import ClickOutsideWrapper from "../../../components/ui/ClickOutsideWrapper";
+import { useAuth } from '@clerk/clerk-react';
 
 const AddSongDropdown = ({ isOpen, onClose, anchorRef }) => {
+    const { getToken } = useAuth();
     const url = "http://localhost:4000";
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
 
@@ -43,7 +45,12 @@ const AddSongDropdown = ({ isOpen, onClose, anchorRef }) => {
 
     const loadAlbumData = async () => {
         try {
-            const response = await axios.get(`${url}/api/album/list`);
+            const token = await getToken();
+            const response = await axios.get(`${url}/api/album/list`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
             if (response.data.success) {
                 setAlbumData(response.data.albums);
             } else {
@@ -58,6 +65,7 @@ const AddSongDropdown = ({ isOpen, onClose, anchorRef }) => {
         e.preventDefault();
         setLoading(true);
         try {
+            const token = await getToken();
             const formData = new FormData();
             formData.append("image", image);
             formData.append("file", song);
@@ -65,7 +73,12 @@ const AddSongDropdown = ({ isOpen, onClose, anchorRef }) => {
             formData.append("desc", desc);
             formData.append("album", album);
 
-            const response = await axios.post(`${url}/api/song/add`, formData);
+            const response = await axios.post(`${url}/api/song/add`, formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
             if (response.data.success) {
                 toast.success("Song added");
                 resetForm();

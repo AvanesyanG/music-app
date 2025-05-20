@@ -17,7 +17,8 @@ import SsoCallback from './features/auth/SsoCallback.jsx';
 const App = () => {
     const { isLoaded, isSignedIn } = useAuth();
     const location = useLocation();
-    const { albumsData } = useContext(PlayerContext);
+    const playerContext = useContext(PlayerContext);
+    const albumsData = playerContext?.albumsData || [];
     const [background, setBackground] = useState("bg-[#1E293B]");
     const [currentAlbum, setCurrentAlbum] = useState(null);
 
