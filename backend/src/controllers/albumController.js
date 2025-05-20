@@ -13,6 +13,7 @@ const addDefaultAlbum = async (userId) => {
         // Create default album for the user with a simple default image
         const defaultAlbum = new albumModel({
             name: "Favorites",
+            artist: "Various Artists",
             desc: "Your favorite songs",
             bgColor: "#1DB954",
             image: "https://res.cloudinary.com/dxqyvj1yn/image/upload/v1716182400/covers/default-album.png",
@@ -30,27 +31,109 @@ const addDefaultAlbum = async (userId) => {
 const addAlbum = async (req, res) => {
     try {
         const { userId } = req.auth; // Get userId from Clerk auth
-        const { name, desc, bgColor } = req.body;
+        
+        // Detailed logging of the request
+        console.log('=== REQUEST DEBUG ===');
+        console.log('Headers:', req.headers);
+        console.log('Content-Type:', req.headers['content-type']);
+        console.log('Raw body:', req.body);
+        console.log('Parsed body:', JSON.stringify(req.body, null, 2));
+        console.log('File:', req.file);
+        
+        const { name, artist, desc, bgColor } = req.body;
         const imageFile = req.file;
 
+        // Debug log to check received data
+        console.log('=== PARSED DATA ===');
+        console.log('Name:', name);
+        console.log('Artist:', artist);
+        console.log('Desc:', desc);
+        console.log('BgColor:', bgColor);
+        console.log('Has Image:', !!imageFile);
+        console.log('User ID:', userId);
+
+        // Strict validation for required fields
+        if (!name || !artist || !desc || !bgColor || !imageFile) {
+            console.log('=== VALIDATION FAILED ===');
+            console.log('Missing fields:', {
+                name: !!name,
+                artist: !!artist,
+                desc: !!desc,
+                bgColor: !!bgColor,
+                image: !!imageFile
+            });
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required",
+                receivedData: { name, artist, desc, bgColor, hasImage: !!imageFile }
+            });
+        }
+
+        // Additional validation for artist field
+        if (typeof artist !== 'string' || artist.trim().length === 0) {
+            console.log('=== ARTIST VALIDATION FAILED ===');
+            console.log('Artist value:', artist);
+            console.log('Artist type:', typeof artist);
+            return res.status(400).json({
+                success: false,
+                message: "Artist field must be a non-empty string"
+            });
+        }
+
+        // Upload image to Cloudinary
         const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
             folder: "covers"
         });
 
+        // Create album data object with strict validation
         const albumData = {
-            name,
-            desc,
+            name: name.trim(),
+            artist: artist.trim(),
+            desc: desc.trim(),
             bgColor,
             image: imageUpload.secure_url,
-            userId // Add userId to album data
+            userId
         };
 
+        console.log('=== ALBUM DATA ===');
+        console.log('Data to be saved:', JSON.stringify(albumData, null, 2));
+
+        // Create and save the album with validation
         const album = new albumModel(albumData);
-        await album.save();
         
-        res.json({ success: true, message: "Album added successfully" });
+        // Validate the album before saving
+        const validationError = album.validateSync();
+        if (validationError) {
+            console.log('=== VALIDATION ERROR ===');
+            console.error('Validation error:', validationError);
+            return res.status(400).json({
+                success: false,
+                message: "Validation failed",
+                error: validationError.message
+            });
+        }
+
+        const savedAlbum = await album.save();
+        
+        // Verify the saved album has all required fields
+        if (!savedAlbum.artist) {
+            console.log('=== SAVE VERIFICATION FAILED ===');
+            console.log('Saved album:', savedAlbum);
+            throw new Error('Album was saved without artist field');
+        }
+        
+        console.log('=== SAVE SUCCESS ===');
+        console.log('Saved album:', JSON.stringify(savedAlbum.toObject(), null, 2));
+        
+        // Return success response with the saved album
+        res.json({ 
+            success: true, 
+            message: "Album added successfully", 
+            album: savedAlbum 
+        });
     } catch (error) {
-        console.error('Error:', error);
+        console.error('=== ERROR ===');
+        console.error('Error in addAlbum:', error);
         res.status(500).json({ 
             success: false, 
             error: error.message,

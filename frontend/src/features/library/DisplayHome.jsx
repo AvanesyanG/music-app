@@ -28,40 +28,43 @@ const DisplayHome = () => {
                     {albumsData.map((item, index) => (
                         <AlbumItem 
                             key={index} 
-                            name={item.name} 
-                            desc={item.desc} 
-                            id={item._id}
-                            image={item.image}
+                            album={{
+                                id: item._id,
+                                title: item.name,
+                                artist: item.desc,
+                                image: item.image
+                            }}
                         />
                     ))}
                 </div>
             </div>
             
-                <div className="mb-4">
-                    <div className="my-4 pl-3.5 flex items-center gap-2">
-                        <h1 className="font-bold text-xl">Songs</h1>
-                        <button 
-                            onClick={() => setIsSongDropdownOpen(true)}
-                            className="w-6 h-6 flex items-center justify-center bg-black hover:bg-gray-800 rounded-full transition-colors text-xl relative"
-                        >
-                            +
-                        </button>
-                    </div>
-                    {songsData && songsData.length > 0 && (
+            <div className="mb-4">
+                <div className="my-4 pl-3.5 flex items-center gap-2">
+                    <h1 className="font-bold text-xl">Songs</h1>
+                    <button 
+                        onClick={() => setIsSongDropdownOpen(true)}
+                        className="w-6 h-6 flex items-center justify-center bg-black hover:bg-gray-800 rounded-full transition-colors text-xl relative"
+                    >
+                        +
+                    </button>
+                </div>
+                {songsData && songsData.length > 0 && (
                     <div className="flex gap-2 overflow-x-auto pb-4">
                         {songsData.map((item, index) => (
                             <SongItem 
                                 key={index} 
-                                name={item.name} 
-                                desc={item.desc} 
-                                id={item._id} 
-                                image={item.image}
+                                song={{
+                                    id: item._id,
+                                    title: item.name,
+                                    artist: item.desc,
+                                    image: item.image
+                                }}
                             />
                         ))}
                     </div>
                 )}
-                </div>
-            
+            </div>
 
             <AddAlbumDropdown 
                 isOpen={isAlbumDropdownOpen} 

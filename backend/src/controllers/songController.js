@@ -25,7 +25,7 @@ const addSong = async (req, res) => {
             folder: "covers"
         });
 
-        const { name, desc, album: albumName } = req.body;
+        const { name, artist, desc, album: albumName } = req.body;
         
         // Find album by name and user ID
         let album = null;
@@ -38,6 +38,7 @@ const addSong = async (req, res) => {
 
         const songData = {
             name,
+            artist,
             desc,
             album,
             file: audioUpload.secure_url,

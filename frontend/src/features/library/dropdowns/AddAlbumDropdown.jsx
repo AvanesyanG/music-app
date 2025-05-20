@@ -13,6 +13,7 @@ const AddAlbumDropdown = ({ isOpen, onClose, anchorRef }) => {
     const [image, setImage] = useState(false);
     const [color, setColor] = useState("#000000");
     const [name, setName] = useState("");
+    const [artist, setArtist] = useState("");
     const [desc, setDesc] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -44,8 +45,15 @@ const AddAlbumDropdown = ({ isOpen, onClose, anchorRef }) => {
             const formData = new FormData();
             formData.append("image", image);
             formData.append("name", name);
+            formData.append("artist", artist);
             formData.append("desc", desc);
             formData.append("bgColor", color);
+            
+            // Debug log to check form data
+            console.log('Form data being sent:');
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
             
             const response = await axios.post(`${url}/api/album/add`, formData, {
                 headers: {
@@ -58,10 +66,11 @@ const AddAlbumDropdown = ({ isOpen, onClose, anchorRef }) => {
                 resetForm();
                 onClose();
             } else {
-                toast.error("Something went wrong");
+                toast.error(response.data.message || "Something went wrong");
             }
         } catch (error) {
-            toast.error("Error occurred");
+            console.error('Error adding album:', error);
+            toast.error(error.response?.data?.message || "Error occurred");
         }
         setLoading(false);
     };
@@ -69,6 +78,7 @@ const AddAlbumDropdown = ({ isOpen, onClose, anchorRef }) => {
     const resetForm = () => {
         setDesc('');
         setName('');
+        setArtist('');
         setImage(false);
         setColor("#000000");
     };
@@ -119,6 +129,16 @@ const AddAlbumDropdown = ({ isOpen, onClose, anchorRef }) => {
                                     <input 
                                         onChange={(e) => setName(e.target.value)} 
                                         value={name} 
+                                        className="bg-[#3E3E3E] text-white outline-none border border-gray-600 p-1.5 sm:p-2 rounded-md w-full focus:border-gray-400 transition-colors text-sm sm:text-base" 
+                                        type="text" 
+                                        placeholder="Type here" 
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <p className="text-gray-300 text-sm sm:text-base">Artist</p>
+                                    <input 
+                                        onChange={(e) => setArtist(e.target.value)} 
+                                        value={artist} 
                                         className="bg-[#3E3E3E] text-white outline-none border border-gray-600 p-1.5 sm:p-2 rounded-md w-full focus:border-gray-400 transition-colors text-sm sm:text-base" 
                                         type="text" 
                                         placeholder="Type here" 

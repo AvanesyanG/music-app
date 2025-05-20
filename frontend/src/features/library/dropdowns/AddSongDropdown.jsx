@@ -13,6 +13,7 @@ const AddSongDropdown = ({ isOpen, onClose, anchorRef }) => {
     const [image, setImage] = useState(false);
     const [song, setSong] = useState(false);
     const [name, setName] = useState("");
+    const [artist, setArtist] = useState("");
     const [desc, setDesc] = useState("");
     const [album, setAlbum] = useState("none");
     const [loading, setLoading] = useState(false);
@@ -70,6 +71,7 @@ const AddSongDropdown = ({ isOpen, onClose, anchorRef }) => {
             formData.append("image", image);
             formData.append("file", song);
             formData.append("name", name);
+            formData.append("artist", artist);
             formData.append("desc", desc);
             formData.append("album", album);
 
@@ -94,6 +96,7 @@ const AddSongDropdown = ({ isOpen, onClose, anchorRef }) => {
 
     const resetForm = () => {
         setName("");
+        setArtist("");
         setDesc("");
         setImage(false);
         setSong(false);
@@ -171,6 +174,16 @@ const AddSongDropdown = ({ isOpen, onClose, anchorRef }) => {
                                     />
                                 </div>
                                 <div className="flex flex-col gap-1">
+                                    <p className="text-gray-300 text-sm sm:text-base">Artist</p>
+                                    <input 
+                                        onChange={(e) => setArtist(e.target.value)} 
+                                        value={artist} 
+                                        className="bg-[#3E3E3E] text-white outline-none border border-gray-600 p-1.5 sm:p-2 rounded-md w-full focus:border-gray-400 transition-colors text-sm sm:text-base" 
+                                        type="text" 
+                                        placeholder="Type here" 
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1">
                                     <p className="text-gray-300 text-sm sm:text-base">Song Description</p>
                                     <input 
                                         onChange={(e) => setDesc(e.target.value)} 
@@ -198,8 +211,9 @@ const AddSongDropdown = ({ isOpen, onClose, anchorRef }) => {
                                 <button 
                                     type="submit" 
                                     className="text-white bg-black py-1.5 sm:py-2 px-4 rounded-full font-medium hover:bg-gray-900 transition-colors w-full text-sm sm:text-base"
+                                    disabled={loading}
                                 >
-                                    Add
+                                    {loading ? "Adding..." : "Add"}
                                 </button>
                             </div>
                         </div>

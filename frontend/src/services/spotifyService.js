@@ -25,29 +25,39 @@ class SpotifyService {
 
     try {
       console.log('Requesting Spotify access token...');
-      const authString = btoa(CLIENT_ID + ':' + CLIENT_SECRET);
-      console.log('Auth string generated:', authString ? 'Yes' : 'No');
+      
+      // Create the authorization header
+      const authHeader = 'Basic ' + btoa(CLIENT_ID + ':' + CLIENT_SECRET);
+      
+      // Create the request body
+      const body = new URLSearchParams();
+      body.append('grant_type', 'client_credentials');
 
       const response = await axios.post('https://accounts.spotify.com/api/token', 
-        'grant_type=client_credentials',
+        body.toString(),
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': 'Basic ' + authString
+            'Authorization': authHeader
           }
         }
       );
 
-      this.token = response.data.access_token;
-      // Set token expiration (subtract 5 minutes for safety)
-      this.tokenExpiration = Date.now() + (response.data.expires_in * 1000) - 300000;
-      console.log('Successfully obtained access token');
-      return this.token;
+      if (response.data && response.data.access_token) {
+        this.token = response.data.access_token;
+        // Set token expiration (subtract 5 minutes for safety)
+        this.tokenExpiration = Date.now() + (response.data.expires_in * 1000) - 300000;
+        console.log('Successfully obtained access token');
+        return this.token;
+      } else {
+        throw new Error('Invalid response from Spotify');
+      }
     } catch (error) {
       console.error('Error getting Spotify access token:', {
         message: error.message,
         response: error.response?.data,
-        status: error.response?.status
+        status: error.response?.status,
+        headers: error.response?.headers
       });
       throw new Error('Failed to get Spotify access token');
     }
