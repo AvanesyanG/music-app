@@ -10,17 +10,74 @@ import PageTransition from "./components/ui/PageTransition.jsx";
 import Navbar from "./components/ui/Navbar.jsx";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import SsoCallback from './features/auth/SsoCallback.jsx';
-
+import axios from 'axios';
 
 const App = () => {
-    const { isLoaded, isSignedIn } = useAuth();
+    const { isLoaded, isSignedIn, getToken } = useAuth();
+    const { user } = useUser();
     const location = useLocation();
     const playerContext = useContext(PlayerContext);
     const albumsData = playerContext?.albumsData || [];
     const [background, setBackground] = useState("bg-[#1E293B]");
     const [currentAlbum, setCurrentAlbum] = useState(null);
+
+    // Handle auth callback when user signs in
+    useEffect(() => {
+        const handleAuthCallback = async () => {
+            if (isSignedIn && user) {
+                try {
+                    console.log('Preparing auth callback for user:', {
+                        id: user.id,
+                        email: user.primaryEmailAddress?.emailAddress
+                    });
+
+                    const token = await getToken();
+                    if (!token) {
+                        console.error('No token available');
+                        return;
+                    }
+
+                    const response = await axios.post('http://localhost:4000/api/auth/callback', {
+                        id: user.id,
+                        emailAddress: user.primaryEmailAddress?.emailAddress
+                    }, {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    });
+
+                    // Log success based on status code
+                    if (response.status === 201) {
+                        console.log('New user created:', response.data);
+                    } else if (response.status === 200) {
+                        console.log('Existing user found:', response.data);
+                    }
+                } catch (error) {
+                    // Don't treat 409 as an error - it means the user exists
+                    if (error.response?.status === 409) {
+                        console.log('User already exists:', error.response.data);
+                        return;
+                    }
+
+                    console.error('Auth callback failed:', {
+                        message: error.message,
+                        response: error.response?.data,
+                        status: error.response?.status,
+                        user: {
+                            id: user.id,
+                            email: user.primaryEmailAddress?.emailAddress
+                        }
+                    });
+                }
+            }
+        };
+
+        if (isLoaded && isSignedIn) {
+            handleAuthCallback();
+        }
+    }, [isLoaded, isSignedIn, user, getToken]);
 
     useEffect(() => {
         if (location.pathname === "/") {
