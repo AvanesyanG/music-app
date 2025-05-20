@@ -72,6 +72,9 @@ export default {
       screens: {
         'lg-sidebar': '1100px',
       },
+      height: {
+        '100dvh': '100dvh',
+      },
     },
   },
   plugins: [],
