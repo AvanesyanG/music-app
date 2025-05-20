@@ -1,8 +1,51 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { assets } from '../../assets/assets';
+import { spotifyService } from '../../services/spotifyService';
+import SongItem from '../../components/common/SongItem';
+import AlbumItem from '../../components/common/AlbumItem';
+import debounce from 'lodash/debounce';
 
 const SearchPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState({
+        songs: [],
+        albums: []
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    const performSearch = useCallback(async (query) => {
+        if (!query.trim()) {
+            setSearchResults({ songs: [], albums: [] });
+            return;
+        }
+
+        try {
+            setLoading(true);
+            setError(null);
+            const [songs, albums] = await Promise.all([
+                spotifyService.searchSongs(query),
+                spotifyService.searchAlbums(query)
+            ]);
+            setSearchResults({ songs, albums });
+        } catch (err) {
+            console.error('Search error:', err);
+            setError('Failed to perform search. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    // Debounce the search to avoid too many API calls
+    const debouncedSearch = useCallback(
+        debounce((query) => performSearch(query), 500),
+        [performSearch]
+    );
+
+    useEffect(() => {
+        debouncedSearch(searchQuery);
+        return () => debouncedSearch.cancel();
+    }, [searchQuery, debouncedSearch]);
 
     return (
         <div className="h-full flex flex-col text-white">
@@ -27,6 +70,7 @@ const SearchPage = () => {
 
             <div className="flex-1 overflow-auto px-4 pt-4">
                 {!searchQuery ? (
+                    // Browse Categories
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         <div className="bg-gradient-to-br from-purple-700 to-purple-900 p-4 rounded-lg cursor-pointer hover:bg-gradient-to-br hover:from-purple-600 hover:to-purple-800 transition-all">
                             <h3 className="font-bold text-2xl">Made For You</h3>
@@ -46,63 +90,59 @@ const SearchPage = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-6">
-                        {/* Top Result */}
-                        <section>
-                            <h2 className="text-2xl font-bold mb-4">Top Result</h2>
-                            <div className="bg-[#181818] hover:bg-[#282828] transition-all p-5 rounded-lg max-w-[300px]">
-                                <img src={assets.img1} alt="Top result" className="w-24 h-24 rounded-lg shadow-xl" />
-                                <h3 className="mt-4 text-xl font-bold">Song Title</h3>
-                                <p className="text-sm text-gray-400 mt-1">Artist Name</p>
-                                <button className="mt-4 bg-green-500 hover:bg-green-400 rounded-full p-3">
-                                    <img src={assets.play_icon} alt="play" className="w-6 h-6" />
-                                </button>
+                    // Search Results
+                    <div className="space-y-8">
+                        {loading ? (
+                            <div className="flex justify-center items-center min-h-[200px]">
+                                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
                             </div>
-                        </section>
-
-                        {/* Songs */}
-                        <section>
-                            <h2 className="text-2xl font-bold mb-4">Songs</h2>
-                            <div className="grid gap-2">
-                                {[1,2,3].map((_, i) => (
-                                    <div key={i} className="flex items-center gap-4 p-2 rounded-md hover:bg-[#ffffff1a] cursor-pointer">
-                                        <img src={assets.img1} alt="song" className="w-12 h-12 rounded" />
-                                        <div>
-                                            <p className="font-semibold">Song Name</p>
-                                            <p className="text-sm text-gray-400">Artist Name</p>
+                        ) : error ? (
+                            <div className="text-center text-red-500 p-4">
+                                {error}
+                            </div>
+                        ) : (
+                            <>
+                                {/* Songs Section */}
+                                {searchResults.songs.length > 0 && (
+                                    <section>
+                                        <h2 className="text-2xl font-bold mb-4">Songs</h2>
+                                        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                            {searchResults.songs.map(song => (
+                                                <SongItem 
+                                                    key={song.id} 
+                                                    song={song}
+                                                    showPreview={true}
+                                                    showSpotifyLink={true}
+                                                />
+                                            ))}
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
+                                    </section>
+                                )}
 
-                        {/* Artists */}
-                        <section>
-                            <h2 className="text-2xl font-bold mb-4">Artists</h2>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                {[1,2,3,4,5].map((_, i) => (
-                                    <div key={i} className="p-4 bg-[#181818] hover:bg-[#282828] transition-all rounded-lg text-center cursor-pointer">
-                                        <img src={assets.img1} alt="artist" className="w-full aspect-square rounded-full object-cover mb-4" />
-                                        <p className="font-semibold">Artist Name</p>
-                                        <p className="text-sm text-gray-400">Artist</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
+                                {/* Albums Section */}
+                                {searchResults.albums.length > 0 && (
+                                    <section>
+                                        <h2 className="text-2xl font-bold mb-4">Albums</h2>
+                                        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                                            {searchResults.albums.map(album => (
+                                                <AlbumItem 
+                                                    key={album.id} 
+                                                    album={album}
+                                                    showSpotifyLink={true}
+                                                />
+                                            ))}
+                                        </div>
+                                    </section>
+                                )}
 
-                        {/* Albums */}
-                        <section>
-                            <h2 className="text-2xl font-bold mb-4">Albums</h2>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                {[1,2,3,4,5].map((_, i) => (
-                                    <div key={i} className="p-4 bg-[#181818] hover:bg-[#282828] transition-all rounded-lg cursor-pointer">
-                                        <img src={assets.img1} alt="album" className="w-full aspect-square rounded-lg object-cover mb-4" />
-                                        <p className="font-semibold">Album Name</p>
-                                        <p className="text-sm text-gray-400">Album • 2024</p>
+                                {/* No Results */}
+                                {!loading && searchResults.songs.length === 0 && searchResults.albums.length === 0 && (
+                                    <div className="text-center text-gray-400 p-8">
+                                        No results found for "{searchQuery}"
                                     </div>
-                                ))}
-                            </div>
-                        </section>
+                                )}
+                            </>
+                        )}
                     </div>
                 )}
             </div>
