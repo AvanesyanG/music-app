@@ -67,6 +67,75 @@ const addSong = async (req, res) => {
     }
 };
 
+const addSpotifySong = async (req, res) => {
+    try {
+        const { userId } = req.auth;
+        const { name, artist, desc, album: albumName, spotifyId, spotifyUrl, previewUrl, image, file } = req.body;
+
+        // Validate required fields
+        if (!name || !artist || !spotifyId || !image || !file) {
+            return res.status(400).json({
+                success: false,
+                error: "Missing required fields: name, artist, spotifyId, image, and file are required"
+            });
+        }
+        
+        // Find album by name and user ID
+        let album = null;
+        if (albumName && albumName !== "none") {
+            const foundAlbum = await albumModel.findOne({ name: albumName, userId });
+            if (foundAlbum) {
+                album = foundAlbum._id;
+            }
+        }
+
+        // Check if song already exists for this user
+        const existingSong = await songModel.findOne({ userId, spotifyId });
+        if (existingSong) {
+            return res.status(400).json({
+                success: false,
+                error: "This song is already in your library"
+            });
+        }
+
+        const songData = {
+            name,
+            artist,
+            desc: desc || artist, // Use artist as description if not provided
+            album,
+            image,
+            file, // Use the provided file URL
+            duration: "0:30", // Default duration for preview
+            userId,
+            spotifyId,
+            spotifyUrl,
+            previewUrl
+        };
+
+        const song = new songModel(songData);
+        await song.save();
+        
+        if (album) {
+            await albumModel.findByIdAndUpdate(album, {
+                $push: { songs: song._id }
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: "Song added successfully",
+            song: song
+        });
+    } catch (error) {
+        console.error('Error adding Spotify song:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message || "Error adding song",
+            details: error.toString()
+        });
+    }
+};
+
 const listSong = async (req, res) => {
     try {
         const { userId } = req.auth; // Get userId from Clerk auth
@@ -103,4 +172,4 @@ const removeSong = async (req, res) => {
     }
 };
 
-export { addSong, listSong, removeSong };
+export { addSong, addSpotifySong, listSong, removeSong };

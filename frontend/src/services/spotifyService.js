@@ -196,6 +196,31 @@ class SpotifyService {
       throw new Error('Failed to get recommendations');
     }
   }
+
+  async searchArtists(query, limit = 10) {
+    try {
+      const data = await this.makeRequest('/search', {
+        q: query,
+        type: 'artist',
+        limit,
+        market: 'US'
+      });
+      
+      console.log('Raw Spotify artist search response:', data);
+      
+      return data.artists.items.map(artist => ({
+        id: artist.id,
+        name: artist.name,
+        image: artist.images[0]?.url || null,
+        genres: artist.genres,
+        popularity: artist.popularity,
+        spotifyUrl: artist.external_urls.spotify
+      }));
+    } catch (error) {
+      console.error('Error searching artists:', error);
+      throw error;
+    }
+  }
 }
 
 export const spotifyService = new SpotifyService(); 

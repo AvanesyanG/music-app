@@ -1,4 +1,54 @@
 import { clerkClient } from '@clerk/clerk-sdk-node';
+import userModel from '../models/userModel.js';
+import { seedDefaultArtists } from '../scripts/seedDefaultArtists.js';
+
+// Middleware to ensure user exists in MongoDB
+export const ensureUser = async (req, res, next) => {
+    try {
+        const clerkId = req.auth.userId;
+        console.log('Ensuring user exists for Clerk ID:', clerkId);
+
+        // Get user details from Clerk
+        const clerkUser = await clerkClient.users.getUser(clerkId);
+        console.log('Found Clerk user:', clerkUser.emailAddresses[0]?.emailAddress);
+
+        // Check if user exists in MongoDB
+        let user = await userModel.findOne({ clerkId });
+        let isNewUser = false;
+
+        if (!user) {
+            console.log('User not found in MongoDB, creating new user');
+            // Create new user in MongoDB
+            user = await userModel.create({
+                clerkId,
+                email: clerkUser.emailAddresses[0]?.emailAddress,
+                name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'User'
+            });
+            isNewUser = true;
+            console.log('Created new user in MongoDB:', user._id);
+        } else {
+            console.log('Found existing user in MongoDB:', user._id);
+        }
+
+        // Add MongoDB user ID to request
+        req.auth.mongoUserId = user._id;
+        console.log('Added MongoDB user ID to request:', req.auth.mongoUserId);
+
+        // If this is a new user, seed default artists
+        if (isNewUser) {
+            console.log('Seeding default artists for new user');
+            await seedDefaultArtists(user._id);
+        }
+
+        next();
+    } catch (error) {
+        console.error('Error in ensureUser middleware:', error);
+        res.status(500).json({ 
+            message: 'Error ensuring user exists',
+            error: error.message 
+        });
+    }
+};
 
 export const protectRoute = async (req, res, next) => {
     try {

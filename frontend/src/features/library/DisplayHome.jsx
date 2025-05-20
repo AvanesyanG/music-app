@@ -4,6 +4,7 @@ import {useContext, useState, useRef} from "react";
 import {PlayerContext} from "../../context/PlayerContext.jsx";
 import AddAlbumDropdown from "./dropdowns/AddAlbumDropdown.jsx";
 import AddSongDropdown from "./dropdowns/AddSongDropdown.jsx";
+import DisplayArtists from "./DisplayArtists.jsx";
 
 const DisplayHome = () => {
     const {songsData,albumsData} = useContext(PlayerContext);
@@ -64,6 +65,14 @@ const DisplayHome = () => {
                         ))}
                     </div>
                 )}
+            </div>
+
+            {/* Artists Section */}
+            <div className="mb-4">
+                <div className="my-4 pl-3.5">
+                    <h1 className="font-bold text-xl">Artists</h1>
+                </div>
+                <DisplayArtists />
             </div>
 
             <AddAlbumDropdown 

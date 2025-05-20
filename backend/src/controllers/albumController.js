@@ -32,30 +32,26 @@ const addAlbum = async (req, res) => {
     try {
         const { userId } = req.auth; // Get userId from Clerk auth
         
-        // Detailed logging of the request
-        console.log('=== REQUEST DEBUG ===');
-        console.log('Headers:', req.headers);
-        console.log('Content-Type:', req.headers['content-type']);
-        console.log('Raw body:', req.body);
-        console.log('Parsed body:', JSON.stringify(req.body, null, 2));
-        console.log('File:', req.file);
+        // Log the entire request body and file
+        console.log('Full request body:', req.body);
+        console.log('Request file:', req.file);
         
         const { name, artist, desc, bgColor } = req.body;
         const imageFile = req.file;
 
         // Debug log to check received data
-        console.log('=== PARSED DATA ===');
-        console.log('Name:', name);
-        console.log('Artist:', artist);
-        console.log('Desc:', desc);
-        console.log('BgColor:', bgColor);
-        console.log('Has Image:', !!imageFile);
-        console.log('User ID:', userId);
+        console.log('Parsed album data:', {
+            name,
+            artist,
+            desc,
+            bgColor,
+            hasImage: !!imageFile,
+            userId
+        });
 
         // Strict validation for required fields
         if (!name || !artist || !desc || !bgColor || !imageFile) {
-            console.log('=== VALIDATION FAILED ===');
-            console.log('Missing fields:', {
+            console.log('Missing required fields:', {
                 name: !!name,
                 artist: !!artist,
                 desc: !!desc,
@@ -71,9 +67,6 @@ const addAlbum = async (req, res) => {
 
         // Additional validation for artist field
         if (typeof artist !== 'string' || artist.trim().length === 0) {
-            console.log('=== ARTIST VALIDATION FAILED ===');
-            console.log('Artist value:', artist);
-            console.log('Artist type:', typeof artist);
             return res.status(400).json({
                 success: false,
                 message: "Artist field must be a non-empty string"
@@ -95,8 +88,7 @@ const addAlbum = async (req, res) => {
             userId
         };
 
-        console.log('=== ALBUM DATA ===');
-        console.log('Data to be saved:', JSON.stringify(albumData, null, 2));
+        console.log('Creating album with data:', albumData);
 
         // Create and save the album with validation
         const album = new albumModel(albumData);
@@ -104,7 +96,6 @@ const addAlbum = async (req, res) => {
         // Validate the album before saving
         const validationError = album.validateSync();
         if (validationError) {
-            console.log('=== VALIDATION ERROR ===');
             console.error('Validation error:', validationError);
             return res.status(400).json({
                 success: false,
@@ -117,13 +108,10 @@ const addAlbum = async (req, res) => {
         
         // Verify the saved album has all required fields
         if (!savedAlbum.artist) {
-            console.log('=== SAVE VERIFICATION FAILED ===');
-            console.log('Saved album:', savedAlbum);
             throw new Error('Album was saved without artist field');
         }
         
-        console.log('=== SAVE SUCCESS ===');
-        console.log('Saved album:', JSON.stringify(savedAlbum.toObject(), null, 2));
+        console.log('Successfully saved album:', savedAlbum);
         
         // Return success response with the saved album
         res.json({ 
@@ -132,7 +120,6 @@ const addAlbum = async (req, res) => {
             album: savedAlbum 
         });
     } catch (error) {
-        console.error('=== ERROR ===');
         console.error('Error in addAlbum:', error);
         res.status(500).json({ 
             success: false, 
@@ -198,4 +185,45 @@ const removeAlbum = async (req, res) => {
     }
 };
 
-export { addAlbum, listAlbum, removeAlbum, addDefaultAlbum };
+const addSpotifyAlbum = async (req, res) => {
+    try {
+        const { userId } = req.auth;
+        const { name, artist, desc, image, spotifyId, spotifyUrl } = req.body;
+
+        // Check if album already exists
+        const existingAlbum = await albumModel.findOne({ spotifyId, userId });
+        if (existingAlbum) {
+            return res.status(400).json({
+                success: false,
+                message: "Album already exists in your library"
+            });
+        }
+
+        // Create new album
+        const album = new albumModel({
+            name,
+            artist,
+            desc,
+            bgColor: "#1DB954", // Default Spotify green
+            image,
+            userId,
+            spotifyId,
+            spotifyUrl
+        });
+
+        const savedAlbum = await album.save();
+        res.json({ 
+            success: true, 
+            message: "Album added successfully",
+            album: savedAlbum 
+        });
+    } catch (error) {
+        console.error('Error adding Spotify album:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+};
+
+export { addAlbum, listAlbum, removeAlbum, addDefaultAlbum, addSpotifyAlbum };

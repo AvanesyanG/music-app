@@ -7,7 +7,9 @@ const albumSchema = new mongoose.Schema({
         bgColor: {type: String, required: true},
         image: {type: String, required: true},
         userId: { type: String, required: true },
-        songs: [{type: mongoose.Schema.Types.ObjectId, ref: 'song'}]
+        songs: [{type: mongoose.Schema.Types.ObjectId, ref: 'song'}],
+        spotifyId: { type: String },
+        spotifyUrl: { type: String }
     },{timestamps: true})
 const albumModel = mongoose.models.album || mongoose.model('album', albumSchema);
 

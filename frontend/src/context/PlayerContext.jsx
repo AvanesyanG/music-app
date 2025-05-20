@@ -16,6 +16,7 @@ const PlayerContextProvider = (props) => {
     const [isLoading, setIsLoading] = useState(false);
     const [songsData, setSongsData] = useState([])
     const [albumsData, setAlbumsData] = useState([])
+    const [artistsData, setArtistsData] = useState([])
     const [track, setTrack] = useState(songsData[0]);
     const [playStatus, setPlayStatus] = useState(false);
     const [time, setTime] = useState({
@@ -138,6 +139,35 @@ const PlayerContextProvider = (props) => {
         }
     }
 
+    const getArtistsData = async () => {
+        try {
+            const token = await getToken();
+            if (!token) {
+                throw new Error('No authentication token available');
+            }
+
+            console.log('Fetching artists with token:', token.substring(0, 20) + '...');
+            
+            const response = await axios.get(`${url}/api/artists`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            console.log('Artists response:', response.data);
+
+            if (response.data && response.data.artists) {
+                setArtistsData(response.data.artists);
+            } else {
+                console.log('No artists data in response');
+                setArtistsData([]);
+            }
+        } catch (error) {
+            console.error('Error fetching artists:', error.response?.data || error.message);
+            setArtistsData([]);
+        }
+    }
+
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
@@ -200,6 +230,7 @@ const PlayerContextProvider = (props) => {
         if (isLoaded && isSignedIn) {
             getSongsData();
             getAlbumsData();
+            getArtistsData();
         }
     }, [isLoaded, isSignedIn]);
 
@@ -221,9 +252,15 @@ const PlayerContextProvider = (props) => {
         previous,
         seekSong,
         isLoading,
-        songsData,albumsData,
-        toggleMute,setAudioVolume,volume,
-        getSongsData
+        songsData,
+        setSongsData,
+        albumsData,
+        artistsData,
+        toggleMute,
+        setAudioVolume,
+        volume,
+        getSongsData,
+        getArtistsData
     };
 
     return (
