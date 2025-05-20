@@ -7,13 +7,13 @@ import { useNavigate } from "react-router-dom";
 
 const AlbumItem = ({ album, showSpotifyLink = false }) => {
     const navigate = useNavigate();
-    const { albumsData, setAlbumsData, songsData, setSongsData } = useContext(PlayerContext);
+    const { albumsData, setAlbumsData } = useContext(PlayerContext);
     const { getToken } = useAuth();
     const [loading, setLoading] = useState(false);
     const url = "http://localhost:4000";
 
     const isAlbumAdded = () => {
-        return albumsData.some(a => a.spotifyId === album.id);
+        return albumsData?.some(a => a.spotifyId === album.id) || false;
     };
 
     const handleClick = () => {
@@ -28,8 +28,55 @@ const AlbumItem = ({ album, showSpotifyLink = false }) => {
         setLoading(true);
         try {
             const token = await getToken();
+            if (!token) {
+                toast.error("Authentication token not available");
+                setLoading(false);
+                return;
+            }
             
-            // First, add the album
+            // First verify we can get the tracks
+            let tracksResponse;
+            try {
+                console.log('Fetching tracks for album:', {
+                    id: album.id,
+                    title: album.title,
+                    url: `${url}/api/spotify/album/${album.id}/tracks`
+                });
+                
+                tracksResponse = await axios.get(`${url}/api/spotify/album/${album.id}/tracks`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                
+                console.log('Tracks response:', {
+                    status: tracksResponse.status,
+                    data: tracksResponse.data,
+                    tracksCount: tracksResponse.data?.length
+                });
+                
+                if (!tracksResponse.data || tracksResponse.data.length === 0) {
+                    toast.error("This album has no available tracks");
+                    setLoading(false);
+                    return;
+                }
+            } catch (error) {
+                console.error('Error verifying album tracks:', {
+                    error: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status,
+                    headers: error.response?.headers
+                });
+                
+                const errorMessage = error.response?.data?.error || 
+                                   error.response?.data?.details || 
+                                   "Could not verify album tracks. Please try again later.";
+                toast.error(errorMessage);
+                setLoading(false);
+                return;
+            }
+
+            // Then add the album
             const albumData = {
                 name: album.title,
                 artist: album.artist,
@@ -40,6 +87,7 @@ const AlbumItem = ({ album, showSpotifyLink = false }) => {
                 spotifyUrl: album.spotifyUrl
             };
 
+            console.log('Adding album:', albumData);
             const albumResponse = await axios.post(`${url}/api/album/add-spotify`, albumData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -48,48 +96,64 @@ const AlbumItem = ({ album, showSpotifyLink = false }) => {
             });
 
             if (albumResponse.data.success) {
-                // Get album tracks from Spotify
-                const tracksResponse = await axios.get(`${url}/api/spotify/album-tracks/${album.id}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
+                console.log('Album added successfully, adding tracks...');
+                // Add each song from the album
+                for (const track of tracksResponse.data) {
+                    const songData = {
+                        name: track.title,
+                        artist: track.artist,
+                        desc: track.artist,
+                        image: album.image,
+                        album: albumResponse.data.album._id,
+                        spotifyId: track.id,
+                        spotifyUrl: track.spotifyUrl,
+                        previewUrl: track.previewUrl,
+                        file: track.previewUrl || track.spotifyUrl,
+                        duration: track.duration
+                    };
 
-                if (tracksResponse.data.tracks) {
-                    // Add each song from the album
-                    for (const track of tracksResponse.data.tracks) {
-                        const songData = {
-                            name: track.name,
-                            artist: track.artists.map(a => a.name).join(', '),
-                            desc: track.artists.map(a => a.name).join(', '),
-                            image: album.image,
-                            album: albumResponse.data.album._id,
-                            spotifyId: track.id,
-                            spotifyUrl: track.external_urls.spotify,
-                            previewUrl: track.preview_url,
-                            file: track.preview_url || track.external_urls.spotify,
-                            duration: track.duration_ms
-                        };
-
+                    console.log('Adding track:', {
+                        title: track.title,
+                        id: track.id,
+                        hasPreview: !!track.previewUrl
+                    });
+                    
+                    try {
                         await axios.post(`${url}/api/song/add-spotify`, songData, {
                             headers: {
                                 Authorization: `Bearer ${token}`,
                                 'Content-Type': 'application/json'
                             }
                         });
+                    } catch (trackError) {
+                        console.error('Error adding track:', {
+                            track: track.title,
+                            error: trackError.message,
+                            response: trackError.response?.data
+                        });
+                        // Continue with other tracks even if one fails
                     }
                 }
 
                 toast.success("Album and its songs added successfully!");
-                if (albumResponse.data.album) {
-                    setAlbumsData(prevAlbums => [...prevAlbums, albumResponse.data.album]);
+                if (albumResponse.data.album && typeof setAlbumsData === 'function') {
+                    setAlbumsData(prevAlbums => [...(prevAlbums || []), albumResponse.data.album]);
                 }
             } else {
-                toast.error("Failed to add album");
+                toast.error(albumResponse.data.message || "Failed to add album");
             }
         } catch (error) {
-            console.error('Error adding album:', error);
-            toast.error(error.response?.data?.error || "Error occurred");
+            console.error('Error adding album:', {
+                error: error.message,
+                response: error.response?.data,
+                status: error.response?.status,
+                headers: error.response?.headers
+            });
+            const errorMessage = error.response?.data?.error || 
+                               error.response?.data?.details || 
+                               error.message || 
+                               "Error occurred while adding album";
+            toast.error(errorMessage);
         }
         setLoading(false);
     };
@@ -103,6 +167,11 @@ const AlbumItem = ({ album, showSpotifyLink = false }) => {
             />
             <p className="font-bold mt-1 mb-0.5 text-sm truncate">{album.title}</p>
             <p className="text-slate-200 text-xs truncate">{album.artist}</p>
+            {album.tracks && album.tracks.length > 0 && (
+                <p className="text-slate-400 text-xs mt-1">
+                    {album.tracks.length} tracks • {album.totalTracks} total
+                </p>
+            )}
             {showSpotifyLink && (
                 <button 
                     onClick={handleAddAlbum}
@@ -115,6 +184,21 @@ const AlbumItem = ({ album, showSpotifyLink = false }) => {
                 >
                     {loading ? "Adding..." : isAlbumAdded() ? "Added" : "Add Album"}
                 </button>
+            )}
+            {album.tracks && album.tracks.length > 0 && (
+                <div className="mt-2 text-xs text-slate-400">
+                    <p className="font-medium mb-1">Preview tracks:</p>
+                    <div className="space-y-1 max-h-[100px] overflow-y-auto">
+                        {album.tracks.slice(0, 3).map(track => (
+                            <div key={track.id} className="flex items-center gap-2">
+                                <span className="truncate">{track.title}</span>
+                                {track.previewUrl && (
+                                    <span className="text-[#1DB954]">•</span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
             )}
         </div>
     );

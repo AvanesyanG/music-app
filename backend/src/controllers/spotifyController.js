@@ -35,15 +35,58 @@ async function getAccessToken() {
 async function makeRequest(endpoint, params = {}) {
   try {
     const accessToken = await getAccessToken();
+    console.log('Making Spotify API request:', {
+      endpoint,
+      params,
+      hasToken: !!accessToken
+    });
+
     const response = await axios.get(`${SPOTIFY_API_BASE}${endpoint}`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       },
       params
     });
+
+    console.log('Spotify API response status:', response.status);
     return response.data;
   } catch (error) {
-    console.error('Spotify API request failed:', error);
+    console.error('Spotify API request failed:', {
+      endpoint,
+      params,
+      error: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      headers: error.response?.headers
+    });
+
+    // If token is invalid, try to refresh it once
+    if (error.response?.status === 401) {
+      console.log('Token expired, refreshing...');
+      token = null;
+      tokenExpiration = null;
+      try {
+        const newToken = await getAccessToken();
+        
+        // Retry the request with new token
+        const retryResponse = await axios.get(`${SPOTIFY_API_BASE}${endpoint}`, {
+          headers: {
+            'Authorization': `Bearer ${newToken}`
+          },
+          params
+        });
+        
+        return retryResponse.data;
+      } catch (retryError) {
+        console.error('Retry failed:', {
+          error: retryError.message,
+          response: retryError.response?.data,
+          status: retryError.response?.status
+        });
+        throw retryError;
+      }
+    }
+
     throw error;
   }
 }
@@ -113,16 +156,38 @@ export const searchAlbums = async (req, res) => {
 
 export const getAlbumTracks = async (req, res) => {
   try {
+    console.log("STARTt")
     const { id } = req.params;
     if (!id) {
       return res.status(400).json({ error: 'Album ID is required' });
     }
 
+    console.log('Fetching tracks for album:', id);
+    
+    // First verify the album exists
+    try {
+      const albumData = await makeRequest(`/albums/${id}`);
+      console.log('Album exists:', albumData.name);
+    } catch (albumError) {
+      console.error('Error verifying album:', albumError.response?.data || albumError.message);
+      return res.status(404).json({ 
+        error: 'Album not found',
+        details: albumError.response?.data || albumError.message
+      });
+    }
+
+    // Then get the tracks
     const data = await makeRequest(`/albums/${id}/tracks`, {
       limit: 50,
       market: 'US'
     });
 
+    if (!data || !data.items) {
+      console.error('Invalid response from Spotify API:', data);
+      return res.status(500).json({ error: 'Invalid response from Spotify API' });
+    }
+
+    console.log('Successfully fetched tracks:', data.items.length);
     const tracks = data.items.map(track => ({
       id: track.id,
       title: track.name,
@@ -134,8 +199,33 @@ export const getAlbumTracks = async (req, res) => {
 
     res.json(tracks);
   } catch (error) {
-    console.error('Error getting album tracks:', error);
-    res.status(500).json({ error: 'Failed to get album tracks' });
+    console.error('Error getting album tracks:', {
+      error: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      headers: error.response?.headers
+    });
+    
+    // Handle specific Spotify API errors
+    if (error.response?.status === 404) {
+      return res.status(404).json({ 
+        error: 'Album not found',
+        details: error.response.data
+      });
+    }
+    
+    if (error.response?.status === 401) {
+      return res.status(401).json({ 
+        error: 'Spotify API authentication failed',
+        details: error.response.data
+      });
+    }
+
+    res.status(500).json({ 
+      error: 'Failed to get album tracks',
+      details: error.message,
+      spotifyError: error.response?.data
+    });
   }
 };
 

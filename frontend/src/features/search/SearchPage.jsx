@@ -126,6 +126,7 @@ const SearchPage = () => {
 
     useEffect(() => {
         loadAlbumData();
+        fetchUserArtists();
     }, []);
 
     const handleAddSong = async (song) => {
@@ -229,22 +230,44 @@ const SearchPage = () => {
 
             <div className="flex-1 overflow-auto px-4 pt-4">
                 {!searchQuery ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        <div className="bg-gradient-to-br from-purple-700 to-purple-900 p-4 rounded-lg cursor-pointer hover:bg-gradient-to-br hover:from-purple-600 hover:to-purple-800 transition-all">
-                            <h3 className="font-bold text-2xl">Made For You</h3>
-                            <p className="mt-4 text-sm text-gray-300">Your personal playlists based on your taste</p>
+                    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                        <div className="flex-none w-[300px] bg-gradient-to-br from-purple-700 to-purple-900 p-6 rounded-lg">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-bold text-xl">Total Songs</h3>
+                                <div className="bg-white/10 p-2 rounded-full">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <p className="text-4xl font-bold mb-2">{songsData.length}</p>
+                            <p className="text-sm text-gray-300">Songs in your library</p>
                         </div>
-                        <div className="bg-gradient-to-br from-blue-700 to-blue-900 p-4 rounded-lg cursor-pointer hover:bg-gradient-to-br hover:from-blue-600 hover:to-blue-800 transition-all">
-                            <h3 className="font-bold text-2xl">Charts</h3>
-                            <p className="mt-4 text-sm text-gray-300">Top songs in your region</p>
+
+                        <div className="flex-none w-[300px] bg-gradient-to-br from-blue-700 to-blue-900 p-6 rounded-lg">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-bold text-xl">Total Albums</h3>
+                                <div className="bg-white/10 p-2 rounded-full">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <p className="text-4xl font-bold mb-2">{albumData.length}</p>
+                            <p className="text-sm text-gray-300">Albums in your collection</p>
                         </div>
-                        <div className="bg-gradient-to-br from-green-700 to-green-900 p-4 rounded-lg cursor-pointer hover:bg-gradient-to-br hover:from-green-600 hover:to-green-800 transition-all">
-                            <h3 className="font-bold text-2xl">New Releases</h3>
-                            <p className="mt-4 text-sm text-gray-300">Latest hits and albums</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-red-700 to-red-900 p-4 rounded-lg cursor-pointer hover:bg-gradient-to-br hover:from-red-600 hover:to-red-800 transition-all">
-                            <h3 className="font-bold text-2xl">Discover</h3>
-                            <p className="mt-4 text-sm text-gray-300">Find new artists and songs</p>
+
+                        <div className="flex-none w-[300px] bg-gradient-to-br from-green-700 to-green-900 p-6 rounded-lg">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-bold text-xl">Total Artists</h3>
+                                <div className="bg-white/10 p-2 rounded-full">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <p className="text-4xl font-bold mb-2">{userArtists.length}</p>
+                            <p className="text-sm text-gray-300">Artists you follow</p>
                         </div>
                     </div>
                 ) : (

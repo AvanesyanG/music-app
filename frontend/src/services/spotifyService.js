@@ -111,15 +111,79 @@ class SpotifyService {
         limit,
         market: 'US'
       });
-      return data.albums.items.map(album => ({
-        id: album.id,
-        title: album.name,
-        artist: album.artists.map(artist => artist.name).join(', '),
-        image: album.images[0]?.url,
-        releaseDate: album.release_date,
-        totalTracks: album.total_tracks,
-        spotifyUrl: album.external_urls.spotify
-      }));
+
+      // Log the raw album data
+      console.log('Raw Spotify album search response:', data.albums.items);
+
+      // Get detailed album data including tracks for each album
+      const albumsWithTracks = await Promise.all(
+        data.albums.items.map(async (album) => {
+          try {
+            // Get the tracks
+            const tracksData = await this.makeRequest(`/albums/${album.id}/tracks`, {
+              limit: 50,
+              market: 'US'
+            });
+            
+            console.log(`Album "${album.name}" tracks:`, {
+              albumId: album.id,
+              totalTracks: tracksData.total,
+              tracks: tracksData.items.map(track => ({
+                id: track.id,
+                name: track.name,
+                duration: track.duration_ms,
+                preview_url: track.preview_url,
+                artists: track.artists.map(a => a.name)
+              }))
+            });
+
+            // Map the data to a consistent structure
+            return {
+              id: album.id,
+              title: album.name,
+              artist: album.artists.map(artist => artist.name).join(', '),
+              image: album.images[0]?.url,
+              releaseDate: album.release_date,
+              totalTracks: tracksData.total,
+              spotifyUrl: album.external_urls.spotify,
+              tracks: tracksData.items.map(track => ({
+                id: track.id,
+                title: track.name,
+                artist: track.artists.map(artist => artist.name).join(', '),
+                duration: track.duration_ms,
+                previewUrl: track.preview_url,
+                spotifyUrl: track.external_urls.spotify,
+                hasPreview: !!track.preview_url
+              }))
+            };
+          } catch (error) {
+            console.error(`Error getting data for album ${album.name}:`, {
+              error: error.message,
+              response: error.response?.data,
+              status: error.response?.status
+            });
+            
+            // Return a consistent structure even if there's an error
+            return {
+              id: album.id,
+              title: album.name,
+              artist: album.artists.map(artist => artist.name).join(', '),
+              image: album.images[0]?.url,
+              releaseDate: album.release_date,
+              totalTracks: 0,
+              spotifyUrl: album.external_urls.spotify,
+              tracks: [],
+              error: error.message
+            };
+          }
+        })
+      );
+
+      // Filter out albums with no tracks
+      const validAlbums = albumsWithTracks.filter(album => album.tracks.length > 0);
+      console.log('Valid albums with tracks:', validAlbums.length);
+
+      return validAlbums;
     } catch (error) {
       console.error('Error searching albums:', error);
       throw new Error('Failed to search albums');
