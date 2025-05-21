@@ -165,8 +165,41 @@ const SearchPage = () => {
         }
     };
 
+    const handleAddArtist = async (artist) => {
+        try {
+            const token = await getToken();
+            const artistData = {
+                name: artist.name,
+                image: artist.image,
+                spotifyId: artist.id,
+                spotifyUrl: artist.spotifyUrl
+            };
+
+            const response = await axios.post(`${url}/api/artists`, artistData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.data) {
+                toast.success("Artist added successfully!");
+                setUserArtists(prevArtists => [...prevArtists, response.data]);
+            } else {
+                toast.error("Something went wrong");
+            }
+        } catch (error) {
+            console.error('Error adding artist:', error);
+            toast.error(error.response?.data?.message || "Error occurred");
+        }
+    };
+
     const isSongAdded = (spotifyId) => {
         return songsData.some(song => song.spotifyId === spotifyId);
+    };
+
+    const isArtistAdded = (spotifyId) => {
+        return userArtists.some(artist => artist.spotifyId === spotifyId);
     };
 
     return (
@@ -340,6 +373,17 @@ const SearchPage = () => {
                                                     </div>
                                                     <h3 className="font-bold truncate">{artist.name}</h3>
                                                     <p className="text-sm text-gray-400 mb-4">Artist</p>
+                                                    <button 
+                                                        onClick={() => handleAddArtist(artist)}
+                                                        disabled={isArtistAdded(artist.id)}
+                                                        className={`w-full text-xs px-3 py-1 rounded-full transition-colors ${
+                                                            isArtistAdded(artist.id)
+                                                                ? 'bg-gray-600 cursor-not-allowed text-white'
+                                                                : 'bg-[#1DB954] hover:bg-[#1ed760] text-white'
+                                                        }`}
+                                                    >
+                                                        {isArtistAdded(artist.id) ? "Added" : "Add Artist"}
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
