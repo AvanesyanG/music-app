@@ -54,24 +54,57 @@ const PlayerContextProvider = (props) => {
     };
 
     const play = () => {
-        audioRef.current.play();
-        setPlayStatus(true);
+        if (track && track.file) {
+            setPlayStatus(true);
+        }
     };
 
     const pause = () => {
-        audioRef.current.pause();
-        setPlayStatus(false);
+        if (track && track.file) {
+            setPlayStatus(false);
+        }
     };
 
-    const playWithId =  (id) => {
-         songsData.map((item) => {
-            if(id === item._id) {
-                setTrack(item)
+    const playWithId = async (id) => {
+        console.log('playWithId called with id:', id);
+        // Try to find by _id or id
+        const selectedTrack = songsData.find(item => id === item._id || id === item.id);
+        console.log("Found track:", {
+            name: selectedTrack?.name,
+            file: selectedTrack?.file,
+            previewUrl: selectedTrack?.previewUrl,
+            spotifyUrl: selectedTrack?.spotifyUrl,
+            isYouTube: selectedTrack?.file?.includes('youtube.com/watch')
+        });
+
+        if (selectedTrack) {
+            await setTrack(selectedTrack);
+            console.log("Track set to:", {
+                name: selectedTrack.name,
+                file: selectedTrack.file,
+                previewUrl: selectedTrack.previewUrl,
+                spotifyUrl: selectedTrack.spotifyUrl
+            });
+
+            if (selectedTrack.file && selectedTrack.file.includes('youtube.com/watch')) {
+                console.log("Playing YouTube video:", selectedTrack.file);
+                setPlayStatus(true);
+            } else {
+                console.log("Playing regular audio file:", selectedTrack.file);
+                await new Promise(resolve => setTimeout(resolve, 50));
+                console.log("audioRef.current before play:", audioRef.current);
+                try {
+                    await audioRef.current.play();
+                    setPlayStatus(true);
+                    console.log("Audio playback started successfully");
+                } catch (error) {
+                    console.error("Error playing audio:", error);
+                }
             }
-        })
-         audioRef.current.play()
-        setPlayStatus(true)
-    }
+        } else {
+            console.error("No track found with id:", id);
+        }
+    };
 
     const previous = async () => {
         songsData.map(async (item,index) => {

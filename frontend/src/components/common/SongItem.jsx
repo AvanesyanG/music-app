@@ -32,13 +32,21 @@ const SongItem = ({ song, showPreview = false, showSpotifyLink = false }) => {
     };
 
     const handlePlay = () => {
-        if (song.previewUrl) {
-            // If it's a Spotify song with preview, play the preview
+        console.log('Song clicked:', song);
+        if (song._id || song.id) {
+            // If it's a song from our library, use playWithId
+            playWithId(song._id || song.id);
+        } else if (
+            song.previewUrl &&
+            !song.previewUrl.includes('youtube.com/watch') &&
+            !song.previewUrl.includes('youtube.com/embed')
+        ) {
+            // Only play if it's a direct audio file
+            console.log('Playing direct audio preview:', song.previewUrl);
             const audio = new Audio(song.previewUrl);
             audio.play();
         } else {
-            // If it's a local song, use the player context
-            playWithId(song.id);
+            console.warn('Cannot play this song: not a valid audio file or library song.');
         }
     };
 

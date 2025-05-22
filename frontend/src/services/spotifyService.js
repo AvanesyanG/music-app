@@ -15,6 +15,14 @@ class SpotifyService {
   constructor() {
     this.token = null;
     this.tokenExpiration = null;
+    this.YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+    
+    // Verify YouTube API key
+    if (!this.YOUTUBE_API_KEY) {
+        console.error('YouTube API key is missing. Please check your .env file.');
+    } else {
+        console.log('YouTube API key is present');
+    }
   }
 
   async getAccessToken() {
@@ -81,25 +89,40 @@ class SpotifyService {
 
   async searchSongs(query, limit = 10) {
     try {
-      const data = await this.makeRequest('/search', {
-        q: query,
-        type: 'track',
-        limit,
-        market: 'US'
-      });
-      return data.tracks.items.map(track => ({
-        id: track.id,
-        title: track.name,
-        artist: track.artists.map(artist => artist.name).join(', '),
-        album: track.album.name,
-        image: track.album.images[0]?.url,
-        previewUrl: track.preview_url,
-        duration: track.duration_ms,
-        spotifyUrl: track.external_urls.spotify
-      }));
+        const data = await this.makeRequest('/search', {
+            q: query,
+            type: 'track',
+            limit: 50,
+            market: 'US'
+        });
+
+        console.log(`Total search results for "${query}": ${data.tracks.items.length}`);
+
+        // Simply map the tracks without YouTube previews
+        const tracks = data.tracks.items.map(track => ({
+            id: track.id,
+            title: track.name,
+            artist: track.artists.map(artist => artist.name).join(', '),
+            album: track.album.name,
+            image: track.album.images[0]?.url,
+            previewUrl: track.preview_url,
+            duration: track.duration_ms,
+            spotifyUrl: track.external_urls.spotify,
+            previewSource: track.preview_url ? 'spotify' : 'none'
+        }));
+
+        // Log preview availability
+        const previewStats = {
+            total: tracks.length,
+            spotify: tracks.filter(t => t.previewSource === 'spotify').length,
+            none: tracks.filter(t => t.previewSource === 'none').length
+        };
+        console.log('Preview availability:', previewStats);
+
+        return tracks;
     } catch (error) {
-      console.error('Error searching songs:', error);
-      throw new Error('Failed to search songs');
+        console.error('Error searching songs:', error);
+        throw new Error('Failed to search songs');
     }
   }
 
@@ -283,6 +306,48 @@ class SpotifyService {
     } catch (error) {
       console.error('Error searching artists:', error);
       throw error;
+    }
+  }
+
+  async getYouTubePreviewUrl(songTitle, artist) {
+    try {
+        // First verify we have an API key
+        if (!this.YOUTUBE_API_KEY) {
+            console.error('YouTube API key is missing');
+            return null;
+        }
+
+        const searchQuery = `${songTitle} ${artist} audio`;
+        console.log('Searching YouTube for:', searchQuery);
+        
+        const response = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+            params: {
+                part: 'snippet',
+                maxResults: 1,
+                q: searchQuery,
+                type: 'video',
+                key: this.YOUTUBE_API_KEY
+            }
+        });
+
+        if (response.data.items && response.data.items.length > 0) {
+            const videoId = response.data.items[0].id.videoId;
+            console.log('Found YouTube video ID:', videoId);
+            
+            // Return the regular YouTube watch URL
+            return `https://www.youtube.com/watch?v=${videoId}`;
+        }
+        console.log('No YouTube video found for:', searchQuery);
+        return null;
+    } catch (error) {
+        // Enhanced error logging
+        console.error('Error fetching YouTube preview:', {
+            message: error.message,
+            status: error.response?.status,
+            data: error.response?.data,
+            apiKey: this.YOUTUBE_API_KEY ? 'Present' : 'Missing'
+        });
+        return null;
     }
   }
 }

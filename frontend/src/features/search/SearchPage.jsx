@@ -74,16 +74,16 @@ const SearchPage = () => {
             
             let results = { songs: [], artists: [], albums: [] };
             
-            if (type === 'all' || type === 'songs') {
+            if ( type === 'songs') {
                 results.songs = await spotifyService.searchSongs(query);
             }
             
-            if (type === 'all' || type === 'artists') {
+            if ( type === 'artists') {
                 results.artists = await spotifyService.searchArtists(query);
                 fetchUserArtists().catch(() => setUserArtists([]));
             }
             
-            if (type === 'all' || type === 'albums') {
+            if ( type === 'albums') {
                 results.albums = await spotifyService.searchAlbums(query);
             }
             
@@ -128,21 +128,58 @@ const SearchPage = () => {
         loadAlbumData();
         fetchUserArtists();
     }, []);
-
+    // Here's where we add songs to our library
     const handleAddSong = async (song) => {
         try {
             const token = await getToken();
+            
+            // First try to get YouTube preview if Spotify preview is not available
+            let previewUrl = song.previewUrl;
+            console.log('Initial Spotify preview URL:', previewUrl);
+            
+            if (!previewUrl) {
+                console.log('No Spotify preview available, trying YouTube...');
+                console.log('Searching YouTube for:', { title: song.title, artist: song.artist });
+                const youtubePreviewUrl = await spotifyService.getYouTubePreviewUrl(song.title, song.artist);
+                console.log('YouTube preview URL result:', youtubePreviewUrl);
+                
+                if (youtubePreviewUrl) {
+                    console.log('Successfully found YouTube preview:', youtubePreviewUrl);
+                    previewUrl = youtubePreviewUrl;
+                } else {
+                    console.log('No YouTube preview found for:', { title: song.title, artist: song.artist });
+                }
+            }
+
+            // Ensure all required fields are present and have values
             const songData = {
-                name: song.title,
-                artist: song.artist,
-                desc: song.artist,
-                image: song.image,
-                album: selectedAlbum,
-                spotifyId: song.id,
-                spotifyUrl: song.spotifyUrl,
-                previewUrl: song.previewUrl,
-                file: song.previewUrl || song.spotifyUrl
+                name: song.title || '',                    // Required
+                artist: song.artist || '',                 // Required
+                desc: song.artist || '',
+                image: song.image || '',                   // Required
+                album: selectedAlbum || 'none',
+                spotifyId: song.id || '',                  // Required
+                spotifyUrl: song.spotifyUrl || '',
+                previewUrl: previewUrl || '',
+                file: previewUrl || song.spotifyUrl || ''  // Required
             };
+
+            // Log the final preview URL that will be used
+            console.log('Final preview URL being used:', songData.previewUrl);
+            console.log('Final file URL being used:', songData.file);
+
+            // Validate required fields before sending
+            const requiredFields = ['name', 'artist', 'spotifyId', 'image', 'file'];
+            const missingFields = requiredFields.filter(field => !songData[field]);
+            
+            if (missingFields.length > 0) {
+                console.error('Missing required fields:', missingFields);
+                toast.error(`Missing required fields: ${missingFields.join(', ')}`);
+                return;
+            }
+
+            // Log the complete song data for debugging
+            console.log('Adding song with data:', songData);
 
             const response = await axios.post(`${url}/api/song/add-spotify`, songData, {
                 headers: {
@@ -165,41 +202,8 @@ const SearchPage = () => {
         }
     };
 
-    const handleAddArtist = async (artist) => {
-        try {
-            const token = await getToken();
-            const artistData = {
-                name: artist.name,
-                image: artist.image,
-                spotifyId: artist.id,
-                spotifyUrl: artist.spotifyUrl
-            };
-
-            const response = await axios.post(`${url}/api/artists`, artistData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.data) {
-                toast.success("Artist added successfully!");
-                setUserArtists(prevArtists => [...prevArtists, response.data]);
-            } else {
-                toast.error("Something went wrong");
-            }
-        } catch (error) {
-            console.error('Error adding artist:', error);
-            toast.error(error.response?.data?.message || "Error occurred");
-        }
-    };
-
     const isSongAdded = (spotifyId) => {
         return songsData.some(song => song.spotifyId === spotifyId);
-    };
-
-    const isArtistAdded = (spotifyId) => {
-        return userArtists.some(artist => artist.spotifyId === spotifyId);
     };
 
     return (
@@ -373,17 +377,6 @@ const SearchPage = () => {
                                                     </div>
                                                     <h3 className="font-bold truncate">{artist.name}</h3>
                                                     <p className="text-sm text-gray-400 mb-4">Artist</p>
-                                                    <button 
-                                                        onClick={() => handleAddArtist(artist)}
-                                                        disabled={isArtistAdded(artist.id)}
-                                                        className={`w-full text-xs px-3 py-1 rounded-full transition-colors ${
-                                                            isArtistAdded(artist.id)
-                                                                ? 'bg-gray-600 cursor-not-allowed text-white'
-                                                                : 'bg-[#1DB954] hover:bg-[#1ed760] text-white'
-                                                        }`}
-                                                    >
-                                                        {isArtistAdded(artist.id) ? "Added" : "Add Artist"}
-                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
