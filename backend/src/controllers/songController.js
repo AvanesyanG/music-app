@@ -138,8 +138,8 @@ const addSpotifySong = async (req, res) => {
 
 const listSong = async (req, res) => {
     try {
-        const { userId } = req.auth; // Get userId from Clerk auth
-        const allSongs = await songModel.find({ userId }).populate('album', 'name');
+        const { userId } = req.auth;
+        const allSongs = await songModel.find({ userId }).populate('album');
         res.json({ success: true, songs: allSongs });
     } catch (error) {
         console.error('Error listing songs:', error);

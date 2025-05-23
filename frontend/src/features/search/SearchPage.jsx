@@ -143,15 +143,15 @@ const SearchPage = () => {
 
             const songData = {
                 name: song.title,
-                artist: song.artist,
-                desc: song.artist,
-                image: song.image,
-                album: "none",
-                spotifyId: song.id,
-                spotifyUrl: song.spotifyUrl,
-                previewUrl: youtubeData?.url || song.previewUrl,
-                file: youtubeData?.url || song.previewUrl || song.spotifyUrl, // Use the URL string directly
-                duration: youtubeData?.duration || Math.floor(song.duration_ms / 1000)
+    artist: song.artist,
+    desc: song.artist,
+    image: song.image,
+    album: selectedAlbum !== "none" ? selectedAlbum : null,  // Use selectedAlbum instead of "none"
+    spotifyId: song.id,
+    spotifyUrl: song.spotifyUrl,
+    previewUrl: youtubeData?.url || song.previewUrl,
+    file: youtubeData?.url || song.previewUrl || song.spotifyUrl,
+    duration: youtubeData?.duration || Math.floor(song.duration_ms / 1000)
             };
 
             console.log('Adding song with data:', songData);
@@ -313,7 +313,7 @@ const SearchPage = () => {
                                                         >
                                                             <option value="none">No Album</option>
                                                             {albumData.map((item, index) => (
-                                                                <option key={index} value={item.name}>{item.name}</option>
+                                                                <option key={index} value={item._id}>{item.name}</option>
                                                             ))}
                                                         </select>
                                                         <button 

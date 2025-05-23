@@ -131,12 +131,10 @@ const AlbumItem = ({ album, showSpotifyLink = false }) => {
                         duration: track.duration
                     };
 
-                    console.log('Adding track:', {
-                        title: track.title,
-                        id: track.id,
-                        hasPreview: !!track.previewUrl,
-                        hasYoutube: !!youtubeUrl,
-                        finalSource: youtubeUrl ? 'youtube' : (track.previewUrl ? 'spotify_preview' : 'spotify_url')
+                    console.log('Adding track with album ID:', {
+                        trackTitle: track.title,
+                        albumId: albumResponse.data.album._id,
+                        songData: songData
                     });
                     
                     try {
