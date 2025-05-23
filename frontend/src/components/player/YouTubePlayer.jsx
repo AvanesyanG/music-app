@@ -5,10 +5,12 @@ const YouTubePlayer = ({ videoId, isPlaying }) => {
     const containerRef = useRef(null);
     const isPlayerReadyRef = useRef(false);
     const initialPlayStateRef = useRef(isPlaying);
+    const lastPlayStateRef = useRef(isPlaying);
 
     useEffect(() => {
         console.log('YouTubePlayer mounted/updated:', { videoId, isPlaying });
         initialPlayStateRef.current = isPlaying;
+        lastPlayStateRef.current = isPlaying;
         
         // Load the YouTube IFrame Player API
         if (!window.YT) {
@@ -61,8 +63,16 @@ const YouTubePlayer = ({ videoId, isPlaying }) => {
                         console.log('YouTube player state changed:', {
                             state: event.data,
                             videoId,
-                            isPlaying: initialPlayStateRef.current
+                            isPlaying: initialPlayStateRef.current,
+                            lastPlayState: lastPlayStateRef.current
                         });
+                        
+                        // Update last play state when player state changes
+                        if (event.data === window.YT.PlayerState.PLAYING) {
+                            lastPlayStateRef.current = true;
+                        } else if (event.data === window.YT.PlayerState.PAUSED) {
+                            lastPlayStateRef.current = false;
+                        }
                     },
                     'onError': (event) => {
                         console.error('YouTube player error:', {
@@ -90,20 +100,27 @@ const YouTubePlayer = ({ videoId, isPlaying }) => {
     }, [videoId]); // Only recreate player when videoId changes
 
     useEffect(() => {
-        console.log('Play state changed:', { isPlaying, videoId, isPlayerReady: isPlayerReadyRef.current });
+        console.log('Play state changed:', { 
+            isPlaying, 
+            videoId, 
+            isPlayerReady: isPlayerReadyRef.current,
+            lastPlayState: lastPlayStateRef.current
+        });
         
         if (isPlayerReadyRef.current && playerRef.current && playerRef.current.playVideo && playerRef.current.pauseVideo) {
             try {
                 const currentState = playerRef.current.getPlayerState();
                 console.log('Current player state:', currentState);
                 
-                // Only change state if it's different from current
-                if (isPlaying && currentState !== window.YT.PlayerState.PLAYING) {
+                // Only change state if it's different from current and last known state
+                if (isPlaying && currentState !== window.YT.PlayerState.PLAYING && lastPlayStateRef.current !== isPlaying) {
                     console.log('Attempting to play video');
                     playerRef.current.playVideo();
-                } else if (!isPlaying && currentState !== window.YT.PlayerState.PAUSED) {
+                    lastPlayStateRef.current = true;
+                } else if (!isPlaying && currentState !== window.YT.PlayerState.PAUSED && lastPlayStateRef.current !== isPlaying) {
                     console.log('Attempting to pause video');
                     playerRef.current.pauseVideo();
+                    lastPlayStateRef.current = false;
                 }
             } catch (error) {
                 console.error('Error controlling YouTube player:', {

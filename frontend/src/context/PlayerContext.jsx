@@ -121,18 +121,26 @@ const PlayerContextProvider = (props) => {
             
             if (selectedTrack.file && selectedTrack.file.includes('youtube.com/watch')) {
                 console.log("Playing YouTube video:", selectedTrack.file);
-                // Set play status after a small delay to ensure YouTube player is ready
-                setTimeout(() => {
-                    setPlayStatus(wasPlaying);
-                }, 100);
+                // For YouTube videos, we need to ensure the player is ready before setting play status
+                if (wasPlaying) {
+                    // Set play status after a small delay to ensure YouTube player is ready
+                    setTimeout(() => {
+                        setPlayStatus(true);
+                        console.log("Setting YouTube play status to true after delay");
+                    }, 100);
+                } else {
+                    console.log("Keeping YouTube video paused");
+                }
             } else {
                 console.log("Playing regular audio file:", selectedTrack.file);
                 try {
                     if (wasPlaying) {
                         await audioRef.current.play();
                         setPlayStatus(true);
+                        console.log("Regular audio playback started");
+                    } else {
+                        console.log("Keeping regular audio paused");
                     }
-                    console.log("Audio playback started successfully");
                 } catch (error) {
                     console.error("Error playing audio:", error);
                 }
@@ -143,23 +151,73 @@ const PlayerContextProvider = (props) => {
     };
 
     const previous = async () => {
-        songsData.map(async (item,index) => {
-            if(track._id === item._id && index > 0) {
-                await setTrack(songsData[index-1]);
-                await audioRef.current.play()
-                setPlayStatus(true)
+        if (songsData.length === 0) return;
+        
+        const currentIndex = songsData.findIndex(item => item._id === track._id);
+        if (currentIndex > 0) {
+            const wasPlaying = playStatus;
+            setPlayStatus(false);
+            
+            const prevTrack = songsData[currentIndex - 1];
+            await setTrack(prevTrack);
+            
+            // Small delay to ensure track is set
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            if (prevTrack.file && prevTrack.file.includes('youtube.com/watch')) {
+                console.log("Switching to previous YouTube video");
+                if (wasPlaying) {
+                    setTimeout(() => {
+                        setPlayStatus(true);
+                    }, 100);
+                }
+            } else {
+                console.log("Switching to previous regular audio");
+                if (wasPlaying) {
+                    try {
+                        await audioRef.current.play();
+                        setPlayStatus(true);
+                    } catch (error) {
+                        console.error("Error playing previous audio:", error);
+                    }
+                }
             }
-        })
+        }
     };
 
     const next = async () => {
-        songsData.map(async (item,index) => {
-            if(track._id === item._id && index < songsData.length -1) {
-                await setTrack(songsData[index+1]);
-                await audioRef.current.play()
-                setPlayStatus(true)
+        if (songsData.length === 0) return;
+        
+        const currentIndex = songsData.findIndex(item => item._id === track._id);
+        if (currentIndex < songsData.length - 1) {
+            const wasPlaying = playStatus;
+            setPlayStatus(false);
+            
+            const nextTrack = songsData[currentIndex + 1];
+            await setTrack(nextTrack);
+            
+            // Small delay to ensure track is set
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            if (nextTrack.file && nextTrack.file.includes('youtube.com/watch')) {
+                console.log("Switching to next YouTube video");
+                if (wasPlaying) {
+                    setTimeout(() => {
+                        setPlayStatus(true);
+                    }, 100);
+                }
+            } else {
+                console.log("Switching to next regular audio");
+                if (wasPlaying) {
+                    try {
+                        await audioRef.current.play();
+                        setPlayStatus(true);
+                    } catch (error) {
+                        console.error("Error playing next audio:", error);
+                    }
+                }
             }
-        })
+        }
     };
 
     const seekSong = (e) => {
