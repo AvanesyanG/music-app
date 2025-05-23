@@ -54,22 +54,48 @@ const PlayerContextProvider = (props) => {
     };
 
     const play = () => {
-        if (track && track.file) {
-            audioRef.current.play();
-            setPlayStatus(true);
+        console.log('Play called:', {
+            hasTrack: !!track,
+            trackName: track?.name,
+            isYouTube: track?.file?.includes('youtube.com/watch'),
+            currentPlayStatus: playStatus
+        });
+
+        if (track) {
+            if (track.file && track.file.includes('youtube.com/watch')) {
+                console.log('Playing YouTube video');
+                setPlayStatus(true);
+            } else {
+                console.log('Playing regular audio');
+                audioRef.current.play();
+                setPlayStatus(true);
+            }
         }
     };
 
     const pause = () => {
-        if (track && track.file) {
-            audioRef.current.pause();
-            setPlayStatus(false);
+        console.log('Pause called:', {
+            hasTrack: !!track,
+            trackName: track?.name,
+            isYouTube: track?.file?.includes('youtube.com/watch'),
+            currentPlayStatus: playStatus
+        });
+
+        if (track) {
+            if (track.file && track.file.includes('youtube.com/watch')) {
+                console.log('Pausing YouTube video');
+                setPlayStatus(false);
+            } else {
+                console.log('Pausing regular audio');
+                audioRef.current.pause();
+                setPlayStatus(false);
+            }
         }
     };
 
     const playWithId = async (id) => {
-        console.log('playWithId called with id:', id);
-        // Try to find by _id or id
+        console.log('playWithId called:', { id });
+        
         const selectedTrack = songsData.find(item => id === item._id || id === item.id);
         console.log("Found track:", {
             name: selectedTrack?.name,
@@ -80,24 +106,32 @@ const PlayerContextProvider = (props) => {
         });
 
         if (selectedTrack) {
+            console.log('Setting track and preparing to play');
+            // Store current play status before changing track
+            const wasPlaying = playStatus;
+            
+            // Reset play status before changing track
+            setPlayStatus(false);
+            
+            // Set the new track
             await setTrack(selectedTrack);
-            console.log("Track set to:", {
-                name: selectedTrack.name,
-                file: selectedTrack.file,
-                previewUrl: selectedTrack.previewUrl,
-                spotifyUrl: selectedTrack.spotifyUrl
-            });
-
+            
+            // Small delay to ensure track is set
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
             if (selectedTrack.file && selectedTrack.file.includes('youtube.com/watch')) {
                 console.log("Playing YouTube video:", selectedTrack.file);
-                setPlayStatus(true);
+                // Set play status after a small delay to ensure YouTube player is ready
+                setTimeout(() => {
+                    setPlayStatus(wasPlaying);
+                }, 100);
             } else {
                 console.log("Playing regular audio file:", selectedTrack.file);
-                await new Promise(resolve => setTimeout(resolve, 50));
-                console.log("audioRef.current before play:", audioRef.current);
                 try {
-                    await audioRef.current.play();
-                    setPlayStatus(true);
+                    if (wasPlaying) {
+                        await audioRef.current.play();
+                        setPlayStatus(true);
+                    }
                     console.log("Audio playback started successfully");
                 } catch (error) {
                     console.error("Error playing audio:", error);
