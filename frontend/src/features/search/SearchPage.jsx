@@ -133,52 +133,27 @@ const SearchPage = () => {
         try {
             const token = await getToken();
             
-            // First try to get YouTube preview if Spotify preview is not available
-            let previewUrl = song.previewUrl;
-            console.log('Initial Spotify preview URL:', previewUrl);
-            
-            if (!previewUrl) {
-                console.log('No Spotify preview available, trying YouTube...');
-                console.log('Searching YouTube for:', { title: song.title, artist: song.artist });
-                const youtubePreviewUrl = await spotifyService.getYouTubePreviewUrl(song.title, song.artist);
-                console.log('YouTube preview URL result:', youtubePreviewUrl);
-                
-                if (youtubePreviewUrl) {
-                    console.log('Successfully found YouTube preview:', youtubePreviewUrl);
-                    previewUrl = youtubePreviewUrl;
-                } else {
-                    console.log('No YouTube preview found for:', { title: song.title, artist: song.artist });
-                }
+            // Get YouTube data first
+            let youtubeData = null;
+            if (!song.previewUrl) {
+                console.log('Getting YouTube data for:', { title: song.title, artist: song.artist });
+                youtubeData = await spotifyService.getYouTubePreviewUrl(song.title, song.artist);
+                console.log('YouTube data:', youtubeData);
             }
 
-            // Ensure all required fields are present and have values
             const songData = {
-                name: song.title || '',                    // Required
-                artist: song.artist || '',                 // Required
-                desc: song.artist || '',
-                image: song.image || '',                   // Required
-                album: selectedAlbum || 'none',
-                spotifyId: song.id || '',                  // Required
-                spotifyUrl: song.spotifyUrl || '',
-                previewUrl: previewUrl || '',
-                file: previewUrl || song.spotifyUrl || ''  // Required
+                name: song.title,
+                artist: song.artist,
+                desc: song.artist,
+                image: song.image,
+                album: "none",
+                spotifyId: song.id,
+                spotifyUrl: song.spotifyUrl,
+                previewUrl: youtubeData?.url || song.previewUrl,
+                file: youtubeData?.url || song.previewUrl || song.spotifyUrl, // Use the URL string directly
+                duration: youtubeData?.duration || Math.floor(song.duration_ms / 1000)
             };
 
-            // Log the final preview URL that will be used
-            console.log('Final preview URL being used:', songData.previewUrl);
-            console.log('Final file URL being used:', songData.file);
-
-            // Validate required fields before sending
-            const requiredFields = ['name', 'artist', 'spotifyId', 'image', 'file'];
-            const missingFields = requiredFields.filter(field => !songData[field]);
-            
-            if (missingFields.length > 0) {
-                console.error('Missing required fields:', missingFields);
-                toast.error(`Missing required fields: ${missingFields.join(', ')}`);
-                return;
-            }
-
-            // Log the complete song data for debugging
             console.log('Adding song with data:', songData);
 
             const response = await axios.post(`${url}/api/song/add-spotify`, songData, {

@@ -15,6 +15,7 @@ const Player = () => {
         play,
         pause,
         time,
+        setTime,
         setAudioVolume,
         toggleMute,
         volume,
@@ -51,12 +52,25 @@ const Player = () => {
         return url; // If it's already a video ID
     };
 
+    const handleYouTubeTimeUpdate = (timeData) => {
+        setTime({
+            currentTime: timeData.currentTime,
+            totalTime: timeData.totalTime
+        });
+        
+        // Update seekbar progress
+        if (seekBar.current && typeof timeData.progress === 'number') {
+            seekBar.current.style.width = `${timeData.progress}%`;
+        }
+    };
+
     return track ? (
         <>
-            {track.file && (
+            {track.file && track.file.includes('youtube.com/watch') && (
                 <YouTubePlayer
                     videoId={getYouTubeVideoId(track.file)}
                     isPlaying={playStatus}
+                    onTimeUpdate={handleYouTubeTimeUpdate}
                 />
             )}
             <div className="h-[10%] bg-black flex justify-between items-center text-white px-4">
@@ -81,11 +95,11 @@ const Player = () => {
                         <img className="w-4 cursor-pointer" src={assets.loop_icon} alt=""/>
                     </div>
                     <div className="flex items-center gap-5">
-                        <p>{time.currentTime.minute}:{time.currentTime.second}</p>
+                        <p>{`${time?.currentTime?.minute || 0}:${(time?.currentTime?.second || 0).toString().padStart(2, '0')}`}</p>
                         <div ref={seekBg} onClick={seekSong} className="w-[60vw] max-w-[500px] bg-gray-300 rounded-full cursor-pointer">
                             <hr ref={seekBar} className="h-1 border-none w-0 bg-green-800 rounded-full" />
                         </div>
-                        <p>{time.totalTime.minute}:{time.totalTime.second}</p>
+                        <p>{`${time?.totalTime?.minute || 0}:${(time?.totalTime?.second || 0).toString().padStart(2, '0')}`}</p>
                     </div>
                 </div>
                 <div className="hidden lg:flex items-center gap-2 opacity-75">
@@ -112,4 +126,4 @@ const Player = () => {
     ) : null;
 };
 
-export default Player; 
+export default Player;

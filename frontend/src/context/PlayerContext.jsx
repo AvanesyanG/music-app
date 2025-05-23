@@ -6,9 +6,9 @@ export const PlayerContext = createContext();
 
 const PlayerContextProvider = (props) => {
     const { getToken, isLoaded, isSignedIn } = useAuth();
-    const audioRef = useRef();
+    const audioRef = useRef(null);
     const volumeRef = useRef(null);
-    const seekBg = useRef();
+    const seekBg = useRef(null);
     const seekBar = useRef();
     const url = 'http://localhost:4000'
 
@@ -17,7 +17,7 @@ const PlayerContextProvider = (props) => {
     const [songsData, setSongsData] = useState([])
     const [albumsData, setAlbumsData] = useState([])
     const [artistsData, setArtistsData] = useState([])
-    const [track, setTrack] = useState(songsData[0]);
+    const [track, setTrack] = useState(null);
     const [playStatus, setPlayStatus] = useState(false);
     const [time, setTime] = useState({
         currentTime: {
@@ -97,12 +97,20 @@ const PlayerContextProvider = (props) => {
         console.log('playWithId called:', { id });
         
         const selectedTrack = songsData.find(item => id === item._id || id === item.id);
-        console.log("Found track:", {
+        console.log("Found track data:", {
             name: selectedTrack?.name,
             file: selectedTrack?.file,
             previewUrl: selectedTrack?.previewUrl,
             spotifyUrl: selectedTrack?.spotifyUrl,
-            isYouTube: selectedTrack?.file?.includes('youtube.com/watch')
+            spotifyId: selectedTrack?.spotifyId,
+            isYouTube: selectedTrack?.file?.includes('youtube.com/watch'),
+            duration: selectedTrack?.duration,
+            artist: selectedTrack?.artist,
+            album: selectedTrack?.album,
+            image: selectedTrack?.image,
+            desc: selectedTrack?.desc,
+            // Log all available properties
+            allProperties: Object.keys(selectedTrack || {})
         });
 
         if (selectedTrack) {
@@ -113,40 +121,35 @@ const PlayerContextProvider = (props) => {
             // Reset play status before changing track
             setPlayStatus(false);
             
+            // Add a small delay before setting the new track
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
             // Set the new track
             await setTrack(selectedTrack);
             
-            // Small delay to ensure track is set
-            await new Promise(resolve => setTimeout(resolve, 50));
+            // Add another small delay to ensure track is set and DOM is updated
+            await new Promise(resolve => setTimeout(resolve, 100));
             
-            if (selectedTrack.file && selectedTrack.file.includes('youtube.com/watch')) {
-                console.log("Playing YouTube video:", selectedTrack.file);
-                // For YouTube videos, we need to ensure the player is ready before setting play status
-                if (wasPlaying) {
-                    // Set play status after a small delay to ensure YouTube player is ready
-                    setTimeout(() => {
-                        setPlayStatus(true);
-                        console.log("Setting YouTube play status to true after delay");
-                    }, 100);
+            if (wasPlaying) {
+                if (selectedTrack.file && selectedTrack.file.includes('youtube.com/watch')) {
+                    console.log("Playing YouTube video:", selectedTrack.file);
+                    setPlayStatus(true);
                 } else {
-                    console.log("Keeping YouTube video paused");
-                }
-            } else {
-                console.log("Playing regular audio file:", selectedTrack.file);
-                try {
-                    if (wasPlaying) {
-                        await audioRef.current.play();
+                    console.log("Playing regular audio file:", selectedTrack.file);
+                    try {
+                        if (audioRef.current) {
+                            await audioRef.current.play();
+                            setPlayStatus(true);
+                        } else {
+                            console.log("Audio element not ready yet");
+                            setPlayStatus(true);
+                        }
+                    } catch (error) {
+                        console.error("Error playing audio:", error);
                         setPlayStatus(true);
-                        console.log("Regular audio playback started");
-                    } else {
-                        console.log("Keeping regular audio paused");
                     }
-                } catch (error) {
-                    console.error("Error playing audio:", error);
                 }
             }
-        } else {
-            console.error("No track found with id:", id);
         }
     };
 
@@ -175,10 +178,20 @@ const PlayerContextProvider = (props) => {
                 console.log("Switching to previous regular audio");
                 if (wasPlaying) {
                     try {
-                        await audioRef.current.play();
-                        setPlayStatus(true);
+                        // Wait for audio element to be ready
+                        if (audioRef.current) {
+                            await audioRef.current.play();
+                            setPlayStatus(true);
+                        } else {
+                            console.log("Audio element not ready yet");
+                            // Set play status to true, audio will start when ready
+                            setPlayStatus(true);
+                        }
                     } catch (error) {
                         console.error("Error playing previous audio:", error);
+                        // If there's an error, still set play status to true
+                        // The audio will start when it's ready
+                        setPlayStatus(true);
                     }
                 }
             }
@@ -210,18 +223,47 @@ const PlayerContextProvider = (props) => {
                 console.log("Switching to next regular audio");
                 if (wasPlaying) {
                     try {
-                        await audioRef.current.play();
-                        setPlayStatus(true);
+                        // Wait for audio element to be ready
+                        if (audioRef.current) {
+                            await audioRef.current.play();
+                            setPlayStatus(true);
+                        } else {
+                            console.log("Audio element not ready yet");
+                            // Set play status to true, audio will start when ready
+                            setPlayStatus(true);
+                        }
                     } catch (error) {
                         console.error("Error playing next audio:", error);
+                        // If there's an error, still set play status to true
+                        // The audio will start when it's ready
+                        setPlayStatus(true);
                     }
                 }
             }
         }
     };
 
+    const seekYouTube = (e) => {
+        if (seekBg.current) {
+            const seekTime = (e.nativeEvent.offsetX / seekBg.current.offsetWidth) * (time?.totalTime?.minute * 60 + time?.totalTime?.second);
+            // Send the seek time to the YouTube player
+            if (track?.file?.includes('youtube.com/watch')) {
+                // The YouTubePlayer component will handle the actual seeking
+                setTime(prev => ({
+                    ...prev,
+                    currentTime: {
+                        minute: Math.floor(seekTime / 60),
+                        second: Math.floor(seekTime % 60)
+                    }
+                }));
+            }
+        }
+    };
+
     const seekSong = (e) => {
-        if (audioRef.current && seekBg.current) {
+        if (track?.file?.includes('youtube.com/watch')) {
+            seekYouTube(e);
+        } else if (audioRef.current && seekBg.current) {
             const duration = audioRef.current.duration;
             if (!isNaN(duration)) {
                 const seekTime = (e.nativeEvent.offsetX / seekBg.current.offsetWidth) * duration;

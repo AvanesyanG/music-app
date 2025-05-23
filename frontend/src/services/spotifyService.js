@@ -311,7 +311,6 @@ class SpotifyService {
 
   async getYouTubePreviewUrl(songTitle, artist) {
     try {
-        // First verify we have an API key
         if (!this.YOUTUBE_API_KEY) {
             console.error('YouTube API key is missing');
             return null;
@@ -320,7 +319,8 @@ class SpotifyService {
         const searchQuery = `${songTitle} ${artist} audio`;
         console.log('Searching YouTube for:', searchQuery);
         
-        const response = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+        // First, search for the video
+        const searchResponse = await axios.get('https://www.googleapis.com/youtube/v3/search', {
             params: {
                 part: 'snippet',
                 maxResults: 1,
@@ -330,17 +330,43 @@ class SpotifyService {
             }
         });
 
-        if (response.data.items && response.data.items.length > 0) {
-            const videoId = response.data.items[0].id.videoId;
+        if (searchResponse.data.items && searchResponse.data.items.length > 0) {
+            const videoId = searchResponse.data.items[0].id.videoId;
             console.log('Found YouTube video ID:', videoId);
             
-            // Return the regular YouTube watch URL
-            return `https://www.youtube.com/watch?v=${videoId}`;
+            // Then get the video details including duration
+            const videoResponse = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+                params: {
+                    part: 'contentDetails',
+                    id: videoId,
+                    key: this.YOUTUBE_API_KEY
+                }
+            });
+
+            if (videoResponse.data.items && videoResponse.data.items.length > 0) {
+                const duration = videoResponse.data.items[0].contentDetails.duration;
+                // Convert ISO 8601 duration to seconds
+                const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+                const hours = (match[1] && parseInt(match[1])) || 0;
+                const minutes = (match[2] && parseInt(match[2])) || 0;
+                const seconds = (match[3] && parseInt(match[3])) || 0;
+                const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+
+                console.log('YouTube video duration:', {
+                    raw: duration,
+                    formatted: `${minutes}:${seconds.toString().padStart(2, '0')}`,
+                    totalSeconds
+                });
+
+                return {
+                    url: `https://www.youtube.com/watch?v=${videoId}`,
+                    duration: totalSeconds
+                };
+            }
         }
         console.log('No YouTube video found for:', searchQuery);
         return null;
     } catch (error) {
-        // Enhanced error logging
         console.error('Error fetching YouTube preview:', {
             message: error.message,
             status: error.response?.status,

@@ -3,6 +3,7 @@ import { useContext, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useAuth } from '@clerk/clerk-react';
+import { spotifyService } from '../../services/spotifyService.js';
 
 const SongItem = ({ song, showPreview = false, showSpotifyLink = false }) => {
     const { playWithId, songsData, setSongsData } = useContext(PlayerContext);
@@ -56,6 +57,15 @@ const SongItem = ({ song, showPreview = false, showSpotifyLink = false }) => {
         setLoading(true);
         try {
             const token = await getToken();
+            
+            // Get YouTube data first
+            let youtubeData = null;
+            if (!song.previewUrl) {
+                console.log('Getting YouTube data for:', { title: song.title, artist: song.artist });
+                youtubeData = await spotifyService.getYouTubePreviewUrl(song.title, song.artist);
+                console.log('YouTube data:', youtubeData);
+            }
+
             const songData = {
                 name: song.title,
                 artist: song.artist,
@@ -64,9 +74,12 @@ const SongItem = ({ song, showPreview = false, showSpotifyLink = false }) => {
                 album: "none",
                 spotifyId: song.id,
                 spotifyUrl: song.spotifyUrl,
-                previewUrl: song.previewUrl,
-                file: song.previewUrl || song.spotifyUrl
+                previewUrl: youtubeData?.url || song.previewUrl,
+                file: youtubeData?.url || song.previewUrl || song.spotifyUrl,
+                duration: youtubeData?.duration || Math.floor(song.duration_ms / 1000)
             };
+
+            console.log('Adding song with data:', songData);
 
             const response = await axios.post(`${url}/api/song/add-spotify`, songData, {
                 headers: {
