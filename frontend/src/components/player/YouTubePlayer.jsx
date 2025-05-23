@@ -38,7 +38,7 @@ const getYouTubeVideoId = (urlOrId) => {
     return (match && match[2].length === 11) ? match[2] : null;
 };
 
-const YouTubePlayer = ({ videoId, isPlaying, onTimeUpdate }) => {
+const YouTubePlayer = ({ videoId, isPlaying, onTimeUpdate, volume }) => {
     const playerRef = useRef(null);
     const containerRef = useRef(null);
     const isPlayerReadyRef = useRef(false);
@@ -309,13 +309,26 @@ const YouTubePlayer = ({ videoId, isPlaying, onTimeUpdate }) => {
                     'rel': 0,
                     'showinfo': 0,
                     'modestbranding': 1,
-                    'enablejsapi': 1
+                    'enablejsapi': 1,
+                    'mute': volume === 0 ? 1 : 0
                 },
                 events: {
                     'onReady': (event) => {
                         console.log('🎯 YouTube player ready');
                         playerRef.current = event.target;
                         isPlayerReadyRef.current = true;
+                        
+                        // Set initial volume
+                        try {
+                            playerRef.current.setVolume(volume * 100);
+                            if (volume === 0) {
+                                playerRef.current.mute();
+                            } else {
+                                playerRef.current.unMute();
+                            }
+                        } catch (error) {
+                            console.error('❌ Error setting initial volume:', error);
+                        }
                         
                         // Get initial duration
                         const duration = event.target.getDuration();
@@ -434,6 +447,36 @@ const YouTubePlayer = ({ videoId, isPlaying, onTimeUpdate }) => {
             });
         };
     }, []);
+
+    // Add effect to handle volume changes
+    useEffect(() => {
+        console.log('🔊 Volume effect triggered:', {
+            volume,
+            isPlayerReady: isPlayerReadyRef.current,
+            hasPlayer: !!playerRef.current,
+            videoId: validVideoId
+        });
+
+        if (playerRef.current && isPlayerReadyRef.current) {
+            try {
+                if (volume === 0) {
+                    console.log('🔇 Attempting to mute player');
+                    playerRef.current.mute();
+                } else {
+                    console.log('🔊 Attempting to set volume:', volume * 100);
+                    playerRef.current.unMute();
+                    playerRef.current.setVolume(volume * 100);
+                }
+            } catch (error) {
+                console.error('❌ Error setting volume:', error);
+            }
+        } else {
+            console.log('⚠️ Cannot set volume - player not ready:', {
+                hasPlayer: !!playerRef.current,
+                isPlayerReady: isPlayerReadyRef.current
+            });
+        }
+    }, [volume]);
 
     return (
         <div 

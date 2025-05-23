@@ -39,18 +39,24 @@ const PlayerContextProvider = (props) => {
     }, [track]);
 
     const toggleMute = () => {
+        console.log('🔊 Toggle mute called:', { currentVolume: volume });
         if (volume > 0) {
+            console.log('🔇 Muting - setting volume to 0');
             setVolume(0);
-            audioRef.current.volume = 0;
         } else {
+            console.log('🔊 Unmuting - setting volume to 1');
             setVolume(1); // Unmute (restore to max volume)
-            audioRef.current.volume = 1;
         }
     };
+
     const setAudioVolume = (vol) => {
+        console.log('🔊 setAudioVolume called:', { 
+            requestedVolume: vol,
+            currentVolume: volume,
+            isYouTube: track?.file?.includes('youtube.com/watch')
+        });
         vol = Math.max(0, Math.min(1, vol)); // Ensure volume is between 0 and 1
         setVolume(vol);
-        audioRef.current.volume = vol;
     };
 
     const play = () => {
