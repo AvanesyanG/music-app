@@ -156,7 +156,7 @@ export const searchAlbums = async (req, res) => {
 
 export const getAlbumTracks = async (req, res) => {
   try {
-    console.log("STARTt")
+    console.log("Starting album tracks fetch");
     const { id } = req.params;
     if (!id) {
       return res.status(400).json({ error: 'Album ID is required' });
@@ -167,9 +167,17 @@ export const getAlbumTracks = async (req, res) => {
     // First verify the album exists
     try {
       const albumData = await makeRequest(`/albums/${id}`);
-      console.log('Album exists:', albumData.name);
+      console.log('Album exists:', {
+        name: albumData.name,
+        id: albumData.id,
+        availableMarkets: albumData.available_markets
+      });
     } catch (albumError) {
-      console.error('Error verifying album:', albumError.response?.data || albumError.message);
+      console.error('Error verifying album:', {
+        error: albumError.message,
+        response: albumError.response?.data,
+        status: albumError.response?.status
+      });
       return res.status(404).json({ 
         error: 'Album not found',
         details: albumError.response?.data || albumError.message
@@ -179,7 +187,7 @@ export const getAlbumTracks = async (req, res) => {
     // Then get the tracks
     const data = await makeRequest(`/albums/${id}/tracks`, {
       limit: 50,
-      market: 'US'
+      market: 'PL' // Try Polish market first
     });
 
     if (!data || !data.items) {
@@ -187,7 +195,11 @@ export const getAlbumTracks = async (req, res) => {
       return res.status(500).json({ error: 'Invalid response from Spotify API' });
     }
 
-    console.log('Successfully fetched tracks:', data.items.length);
+    console.log('Successfully fetched tracks:', {
+      count: data.items.length,
+      albumId: id
+    });
+
     const tracks = data.items.map(track => ({
       id: track.id,
       title: track.name,
@@ -203,7 +215,8 @@ export const getAlbumTracks = async (req, res) => {
       error: error.message,
       response: error.response?.data,
       status: error.response?.status,
-      headers: error.response?.headers
+      headers: error.response?.headers,
+      albumId: req.params.id
     });
     
     // Handle specific Spotify API errors

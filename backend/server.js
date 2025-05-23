@@ -10,6 +10,7 @@ import userRouter from './src/routes/userRoute.js';
 import authRouter from './src/routes/authRoute.js';
 import spotifyRouter from './src/routes/spotifyRoute.js';
 import artistRouter from './src/routes/artistRoute.js';
+import youtubeRouter from './src/routes/youtubeRoute.js';
 
 await connectDB().catch(console.dir);
 
@@ -58,6 +59,7 @@ app.use('/api/song', songRouter);
 app.use('/api/album', albumRouter);
 app.use('/api/spotify', spotifyRouter);
 app.use('/api/artists', artistRouter);
+app.use('/api/youtube', youtubeRouter);
 
 // Add error handling middleware
 app.use((err, req, res, next) => {

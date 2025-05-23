@@ -5,7 +5,7 @@ import Sidebar from "./Sidebar.jsx";
 import Player from "./Player.jsx";
 
 const MainLayout = ({ children }) => {
-    const { audioRef, track, songsData, isLoading } = useContext(PlayerContext);
+    const { audioRef, track, songsData, isLoading, setPlayStatus } = useContext(PlayerContext);
     const location = useLocation();
     const isAuthPage = location.pathname.startsWith('/auth');
     
@@ -34,7 +34,16 @@ const MainLayout = ({ children }) => {
                 </div>
             </div>
             {songsData.length > 0 && <Player />}
-            <audio ref={audioRef} src={track ? track.file : ''} preload="auto"></audio>
+            <audio 
+                ref={audioRef} 
+                src={track ? track.file : ''} 
+                preload="auto"
+                onEnded={() => setPlayStatus(false)}
+                onError={() => {
+                    console.error('Audio playback error');
+                    setPlayStatus(false);
+                }}
+            ></audio>
         </div>
     );
 };

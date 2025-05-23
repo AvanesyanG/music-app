@@ -4,6 +4,7 @@ import { useAuth } from '@clerk/clerk-react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useNavigate } from "react-router-dom";
+import { spotifyService } from "../../services/spotifyService";
 
 const AlbumItem = ({ album, showSpotifyLink = false }) => {
     const navigate = useNavigate();
@@ -99,6 +100,24 @@ const AlbumItem = ({ album, showSpotifyLink = false }) => {
                 console.log('Album added successfully, adding tracks...');
                 // Add each song from the album
                 for (const track of tracksResponse.data) {
+                    // Get YouTube URL for the track
+                    let youtubeUrl = null;
+                    try {
+                        console.log('Searching YouTube for:', { title: track.title, artist: track.artist });
+                        youtubeUrl = await spotifyService.getYouTubePreviewUrl(track.title, track.artist);
+                        
+                        if (youtubeUrl) {
+                            console.log('Found YouTube URL:', youtubeUrl);
+                        } else {
+                            console.log('No YouTube results found for:', { title: track.title, artist: track.artist });
+                        }
+                    } catch (youtubeError) {
+                        console.error('Error getting YouTube URL:', {
+                            track: track.title,
+                            error: youtubeError.message
+                        });
+                    }
+
                     const songData = {
                         name: track.title,
                         artist: track.artist,
@@ -108,14 +127,16 @@ const AlbumItem = ({ album, showSpotifyLink = false }) => {
                         spotifyId: track.id,
                         spotifyUrl: track.spotifyUrl,
                         previewUrl: track.previewUrl,
-                        file: track.previewUrl || track.spotifyUrl,
+                        file: youtubeUrl || track.previewUrl || track.spotifyUrl,
                         duration: track.duration
                     };
 
                     console.log('Adding track:', {
                         title: track.title,
                         id: track.id,
-                        hasPreview: !!track.previewUrl
+                        hasPreview: !!track.previewUrl,
+                        hasYoutube: !!youtubeUrl,
+                        finalSource: youtubeUrl ? 'youtube' : (track.previewUrl ? 'spotify_preview' : 'spotify_url')
                     });
                     
                     try {

@@ -55,12 +55,14 @@ const PlayerContextProvider = (props) => {
 
     const play = () => {
         if (track && track.file) {
+            audioRef.current.play();
             setPlayStatus(true);
         }
     };
 
     const pause = () => {
         if (track && track.file) {
+            audioRef.current.pause();
             setPlayStatus(false);
         }
     };
