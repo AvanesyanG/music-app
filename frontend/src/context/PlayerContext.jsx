@@ -68,7 +68,7 @@ const PlayerContextProvider = (props) => {
             } else {
                 console.log('Playing regular audio');
                 audioRef.current.play();
-                setPlayStatus(true);
+            setPlayStatus(true);
             }
         }
     };
@@ -88,7 +88,7 @@ const PlayerContextProvider = (props) => {
             } else {
                 console.log('Pausing regular audio');
                 audioRef.current.pause();
-                setPlayStatus(false);
+            setPlayStatus(false);
             }
         }
     };
@@ -131,21 +131,21 @@ const PlayerContextProvider = (props) => {
             await new Promise(resolve => setTimeout(resolve, 100));
             
             if (wasPlaying) {
-                if (selectedTrack.file && selectedTrack.file.includes('youtube.com/watch')) {
-                    console.log("Playing YouTube video:", selectedTrack.file);
-                    setPlayStatus(true);
-                } else {
-                    console.log("Playing regular audio file:", selectedTrack.file);
-                    try {
+            if (selectedTrack.file && selectedTrack.file.includes('youtube.com/watch')) {
+                console.log("Playing YouTube video:", selectedTrack.file);
+                setPlayStatus(true);
+            } else {
+                console.log("Playing regular audio file:", selectedTrack.file);
+                try {
                         if (audioRef.current) {
-                            await audioRef.current.play();
-                            setPlayStatus(true);
+                    await audioRef.current.play();
+                    setPlayStatus(true);
                         } else {
                             console.log("Audio element not ready yet");
                             setPlayStatus(true);
                         }
-                    } catch (error) {
-                        console.error("Error playing audio:", error);
+                } catch (error) {
+                    console.error("Error playing audio:", error);
                         setPlayStatus(true);
                     }
                 }

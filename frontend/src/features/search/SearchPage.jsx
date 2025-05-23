@@ -139,7 +139,7 @@ const SearchPage = () => {
                 console.log('Getting YouTube data for:', { title: song.title, artist: song.artist });
                 youtubeData = await spotifyService.getYouTubePreviewUrl(song.title, song.artist);
                 console.log('YouTube data:', youtubeData);
-            }
+                }
 
             const songData = {
                 name: song.title,

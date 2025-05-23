@@ -34,16 +34,7 @@ const MainLayout = ({ children }) => {
                 </div>
             </div>
             {songsData.length > 0 && <Player />}
-            <audio 
-                ref={audioRef} 
-                src={track ? track.file : ''} 
-                preload="auto"
-                onEnded={() => setPlayStatus(false)}
-                onError={() => {
-                    console.error('Audio playback error');
-                    setPlayStatus(false);
-                }}
-            ></audio>
+           
         </div>
     );
 };

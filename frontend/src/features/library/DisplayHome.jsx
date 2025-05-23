@@ -3,13 +3,11 @@ import SongItem from "../../components/common/SongItem.jsx";
 import {useContext, useState, useRef} from "react";
 import {PlayerContext} from "../../context/PlayerContext.jsx";
 import AddAlbumDropdown from "./dropdowns/AddAlbumDropdown.jsx";
-import AddSongDropdown from "./dropdowns/AddSongDropdown.jsx";
 import DisplayArtists from "./DisplayArtists.jsx";
 
 const DisplayHome = () => {
     const {songsData,albumsData} = useContext(PlayerContext);
     const [isAlbumDropdownOpen, setIsAlbumDropdownOpen] = useState(false);
-    const [isSongDropdownOpen, setIsSongDropdownOpen] = useState(false);
     const albumButtonRef = useRef(null);
 
     return (
@@ -43,12 +41,6 @@ const DisplayHome = () => {
             <div className="mb-4">
                 <div className="my-4 pl-3.5 flex items-center gap-2">
                     <h1 className="font-bold text-xl">Songs</h1>
-                    <button 
-                        onClick={() => setIsSongDropdownOpen(true)}
-                        className="w-6 h-6 flex items-center justify-center bg-black hover:bg-gray-800 rounded-full transition-colors text-xl relative"
-                    >
-                        +
-                    </button>
                 </div>
                 {songsData && songsData.length > 0 && (
                     <div className="flex gap-2 overflow-x-auto pb-4">
@@ -78,11 +70,6 @@ const DisplayHome = () => {
             <AddAlbumDropdown 
                 isOpen={isAlbumDropdownOpen} 
                 onClose={() => setIsAlbumDropdownOpen(false)}
-                anchorRef={albumButtonRef}
-            />
-            <AddSongDropdown 
-                isOpen={isSongDropdownOpen} 
-                onClose={() => setIsSongDropdownOpen(false)}
                 anchorRef={albumButtonRef}
             />
         </>
