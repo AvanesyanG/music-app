@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 const MoodSelector = () => {
     const navigate = useNavigate();
     const [selectedMood, setSelectedMood] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [showResponse, setShowResponse] = useState(false);
 
     const moods = [
         { id: 'happy', label: 'Happy & Energetic', color: 'bg-yellow-500', hover: 'hover:bg-yellow-600' },
@@ -14,16 +16,18 @@ const MoodSelector = () => {
 
     const handleMoodSelect = (mood) => {
         setSelectedMood(mood);
-        // In future: Will trigger AI music recommendation
-        // For now, navigate to the music library
+        setIsLoading(true);
+        
+        // Simulate AI processing
         setTimeout(() => {
-            navigate('/library');
-        }, 1000);
+            setIsLoading(false);
+            setShowResponse(true);
+        }, 2000);
     };
 
     return (
-        <div className="w-full h-full flex flex-col">
-            <div className="flex-1 flex items-center justify-center">
+        <div className="w-full h-full flex flex-col relative">
+            <div className={`flex-1 flex items-center justify-center ${isLoading ? 'blur-sm' : ''} ${showResponse ? 'scale-0 rotate-180 transition-all duration-500' : ''}`}>
                 <div className="max-w-2xl w-full text-center">
                     <h1 className="text-4xl font-bold mb-8 animate-fade-in text-white">
                         How are you feeling today?
@@ -57,6 +61,30 @@ const MoodSelector = () => {
                     </p>
                 </div>
             </div>
+
+            {/* AI Loader */}
+            {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="bg-black/50 backdrop-blur-md rounded-full p-8 border-4 border-white/20">
+                        <div className="text-4xl font-bold text-white animate-pulse">AI</div>
+                    </div>
+                </div>
+            )}
+
+            {/* AI Response Container */}
+            {showResponse && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="bg-black/50 backdrop-blur-md rounded-xl p-8 w-full max-w-2xl mx-4">
+                        <div className="text-white">
+                            <h2 className="text-2xl font-bold mb-4">Your {selectedMood?.label} Playlist</h2>
+                            <div className="space-y-4">
+                                {/* This is where the AI response will go */}
+                                <p className="text-gray-300">Loading your personalized playlist...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
