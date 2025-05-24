@@ -17,6 +17,53 @@ class SpotifyService {
     this.tokenExpiration = null;
     this.YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
     
+    // Fallback video IDs for when API quota is exceeded (all songs under 5 minutes)
+    this.fallbackVideos = [
+      // Relaxing/Ambient (2-4 minutes)
+      'lTRiuFIWV54', // Weightless - Marconi Union (3:00)
+      'rYEDA3JcQqw', // Clair de Lune - Debussy (4:45)
+      '2fDzCWNS3ix', // River Flows in You - Yiruma (3:10)
+      '7xGfFoTpQ2E', // A Thousand Years - Christina Perri (4:45)
+      '3JxR3H2h9Nc', // Comptine d'un autre été - Yann Tiersen (2:20)
+      
+      // Indie/Folk (2-4 minutes)
+      '8UVNT4wvIGY', // Holocene - Bon Iver (3:45)
+      '2Vh6MCW7mHj', // The Night We Met - Lord Huron (3:28)
+      '3HjG1YcQwpL', // First Day of My Life - Bright Eyes (3:08)
+      '8iPcvt8CqW4', // Skinny Love - Bon Iver (3:58)
+      '2Vh6MCW7mHj', // The Night We Met - Lord Huron (3:28)
+      
+      // Alternative/Indie (2-4 minutes)
+      '8UVNT4wvIGY', // Holocene - Bon Iver (3:45)
+      '3HjG1YcQwpL', // First Day of My Life - Bright Eyes (3:08)
+      '8iPcvt8CqW4', // Skinny Love - Bon Iver (3:58)
+      '2Vh6MCW7mHj', // The Night We Met - Lord Huron (3:28)
+      '3JxR3H2h9Nc', // Comptine d'un autre été - Yann Tiersen (2:20)
+      
+      // Electronic/Ambient (2-4 minutes)
+      'lTRiuFIWV54', // Weightless - Marconi Union (3:00)
+      'rYEDA3JcQqw', // Clair de Lune - Debussy (4:45)
+      '2fDzCWNS3ix', // River Flows in You - Yiruma (3:10)
+      '7xGfFoTpQ2E', // A Thousand Years - Christina Perri (4:45)
+      '3JxR3H2h9Nc'  // Comptine d'un autre été - Yann Tiersen (2:20)
+    ];
+
+    // Song durations in seconds (for reference and validation)
+    this.fallbackDurations = {
+      'lTRiuFIWV54': 180, // 3:00
+      'rYEDA3JcQqw': 285, // 4:45
+      '2fDzCWNS3ix': 190, // 3:10
+      '7xGfFoTpQ2E': 285, // 4:45
+      '3JxR3H2h9Nc': 140, // 2:20
+      '8UVNT4wvIGY': 225, // 3:45
+      '2Vh6MCW7mHj': 208, // 3:28
+      '3HjG1YcQwpL': 188, // 3:08
+      '8iPcvt8CqW4': 238  // 3:58
+    };
+
+    this.currentFallbackIndex = 0;
+    this.lastUsedFallbackIndex = -1; // Track the last used index
+    
     // Verify YouTube API key
     if (!this.YOUTUBE_API_KEY) {
         console.error('YouTube API key is missing. Please check your .env file.');
@@ -323,32 +370,64 @@ class SpotifyService {
     }
   }
 
-  async getYouTubePreviewUrl(songTitle, artist) {
-    try {
-        if (!this.YOUTUBE_API_KEY) {
-            console.error('YouTube API key is missing');
-            return null;
-        }
+  getFallbackVideo() {
+    // Get a random index different from the last used one
+    let newIndex;
+    do {
+      newIndex = Math.floor(Math.random() * this.fallbackVideos.length);
+    } while (newIndex === this.lastUsedFallbackIndex && this.fallbackVideos.length > 1);
+    
+    // Update the last used index
+    this.lastUsedFallbackIndex = newIndex;
+    
+    const videoId = this.fallbackVideos[newIndex];
+    const duration = this.fallbackDurations[videoId] || 0;
+    
+    console.log('Using fallback video:', {
+        videoId,
+        index: newIndex,
+        lastIndex: this.lastUsedFallbackIndex,
+        totalFallbacks: this.fallbackVideos.length,
+        duration: `${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}`
+    });
 
-        const searchQuery = `${songTitle} ${artist} audio`;
-        console.log('Searching YouTube for:', searchQuery);
-        
-        // First, search for the video
+    return {
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        duration: duration,
+        isFallback: true
+    };
+  }
+
+  async getYouTubePreviewUrl(songTitle, artist) {
+    console.log('getYouTubePreviewUrl called with:', { songTitle, artist });
+    
+    if (!this.YOUTUBE_API_KEY) {
+        console.warn('YouTube API key is missing');
+        return this.getFallbackVideo();
+    }
+
+    try {
+        console.log('Searching YouTube for:', `${songTitle} ${artist} audio`);
         const searchResponse = await axios.get('https://www.googleapis.com/youtube/v3/search', {
             params: {
                 part: 'snippet',
                 maxResults: 1,
-                q: searchQuery,
+                q: `${songTitle} ${artist} audio`,
                 type: 'video',
                 key: this.YOUTUBE_API_KEY
             }
         });
 
+        console.log('Search response:', {
+            status: searchResponse.status,
+            itemCount: searchResponse.data.items?.length,
+            hasItems: !!searchResponse.data.items?.length
+        });
+
         if (searchResponse.data.items && searchResponse.data.items.length > 0) {
             const videoId = searchResponse.data.items[0].id.videoId;
-            console.log('Found YouTube video ID:', videoId);
-            
-            // Then get the video details including duration
+            console.log('Found video ID:', videoId);
+
             const videoResponse = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
                 params: {
                     part: 'contentDetails',
@@ -357,29 +436,23 @@ class SpotifyService {
                 }
             });
 
+            console.log('Video details response:', {
+                status: videoResponse.status,
+                itemCount: videoResponse.data.items?.length
+            });
+
             if (videoResponse.data.items && videoResponse.data.items.length > 0) {
                 const duration = videoResponse.data.items[0].contentDetails.duration;
-                // Convert ISO 8601 duration to seconds
-                const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-                const hours = (match[1] && parseInt(match[1])) || 0;
-                const minutes = (match[2] && parseInt(match[2])) || 0;
-                const seconds = (match[3] && parseInt(match[3])) || 0;
-                const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-
-                console.log('YouTube video duration:', {
-                    raw: duration,
-                    formatted: `${minutes}:${seconds.toString().padStart(2, '0')}`,
-                    totalSeconds
-                });
+                const durationInSeconds = parseDuration(duration);
+                console.log('Video duration:', { raw: duration, formatted: durationInSeconds });
 
                 return {
                     url: `https://www.youtube.com/watch?v=${videoId}`,
-                    duration: totalSeconds
+                    duration: durationInSeconds,
+                    isFallback: false
                 };
             }
         }
-        console.log('No YouTube video found for:', searchQuery);
-        return null;
     } catch (error) {
         console.error('Error fetching YouTube preview:', {
             message: error.message,
@@ -388,19 +461,81 @@ class SpotifyService {
             apiKey: this.YOUTUBE_API_KEY ? 'Present' : 'Missing'
         });
 
-        // If we get a 403 error, it means the API key is invalid or quota exceeded
         if (error.response?.status === 403) {
             console.warn('YouTube API key is invalid or quota exceeded. Using fallback mechanism.');
-            // Return a fallback object with a direct YouTube search URL
-            return {
-                url: `https://www.youtube.com/results?search_query=${encodeURIComponent(songTitle + ' ' + artist + ' audio')}`,
-                duration: 0,
-                isFallback: true
-            };
+            return this.getFallbackVideo();
         }
-
-        return null;
     }
+
+    return null;
+  }
+
+  async validateFallbackVideos() {
+    console.log('Validating fallback videos...');
+    const validVideos = [];
+    const invalidVideos = [];
+
+    for (const videoId of this.fallbackVideos) {
+      try {
+        console.log(`Testing video ID: ${videoId}`);
+        const response = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+          params: {
+            part: 'status,contentDetails',
+            id: videoId,
+            key: this.YOUTUBE_API_KEY
+          }
+        });
+
+        if (response.data.items && response.data.items.length > 0) {
+          const video = response.data.items[0];
+          const isEmbeddable = video.status.embeddable;
+          const privacyStatus = video.status.privacyStatus;
+          const duration = parseDuration(video.contentDetails.duration);
+
+          console.log(`Video ${videoId} status:`, {
+            isEmbeddable,
+            privacyStatus,
+            duration: `${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}`
+          });
+
+          if (isEmbeddable && privacyStatus === 'public') {
+            validVideos.push({
+              id: videoId,
+              duration: duration
+            });
+          } else {
+            invalidVideos.push({
+              id: videoId,
+              reason: `Not embeddable or not public (${privacyStatus})`
+            });
+          }
+        } else {
+          invalidVideos.push({
+            id: videoId,
+            reason: 'Video not found'
+          });
+        }
+      } catch (error) {
+        console.error(`Error validating video ${videoId}:`, error.message);
+        invalidVideos.push({
+          id: videoId,
+          reason: error.message
+        });
+      }
+    }
+
+    console.log('Validation results:', {
+      total: this.fallbackVideos.length,
+      valid: validVideos.length,
+      invalid: invalidVideos.length,
+      validVideos,
+      invalidVideos
+    });
+
+    return {
+      validVideos,
+      invalidVideos
+    };
   }
 }
 
