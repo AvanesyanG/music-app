@@ -181,6 +181,46 @@ const SearchPage = () => {
         return songsData.some(song => song.spotifyId === spotifyId);
     };
 
+    const isAlbumAdded = (spotifyId) => {
+        return albumData.some(album => album.spotifyId === spotifyId);
+    };
+
+    const handleAddAlbum = async (album) => {
+        try {
+            const token = await getToken();
+            
+            const albumData = {
+                name: album.title,
+                artist: album.artist,
+                image: album.image,
+                spotifyId: album.id,
+                spotifyUrl: album.spotifyUrl,
+                desc: album.artist
+            };
+
+            console.log('Adding album with data:', albumData);
+
+            const response = await axios.post(`${url}/api/album/add-spotify`, albumData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.data.success) {
+                toast.success("Album added successfully!");
+                if (response.data.album) {
+                    setAlbumData(prevAlbums => [...prevAlbums, response.data.album]);
+                }
+            } else {
+                toast.error(response.data.message || "Something went wrong");
+            }
+        } catch (error) {
+            console.error('Error adding album:', error);
+            toast.error(error.response?.data?.message || "Error occurred");
+        }
+    };
+
     const isArtistAdded = (spotifyId) => {
         return userArtists.some(artist => artist.spotifyId === spotifyId);
     };
@@ -352,19 +392,20 @@ const SearchPage = () => {
                                 {(searchType === 'all' || searchType === 'songs') && searchResults.songs.length > 0 && (
                                     <section>
                                         <h2 className="text-2xl font-bold mb-4">Songs</h2>
-                                        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                        <div className="grid gap-3 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
                                             {searchResults.songs.map(song => (
-                                                <div key={song.id} className="min-w-[200px] p-2 px-3 rounded cursor-pointer hover:bg-[#ffffff26] relative group">
-                                                    <div className="relative">
-                                                        <img className="w-full h-[150px] object-cover rounded" src={song.image} alt={song.title}/>
+                                                <div key={song.id} className="bg-[#181818] p-2 rounded-lg hover:bg-[#282828] transition-colors group">
+                                                    <div className="relative mb-2">
+                                                        <img className="w-full aspect-square object-cover rounded-md" src={song.image} alt={song.title}/>
+                                                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md" />
                                                     </div>
-                                                    <p className="font-bold mt-1 mb-0.5 text-sm truncate">{song.title}</p>
-                                                    <p className="text-slate-200 text-xs truncate">{song.artist}</p>
-                                                    <div className="flex flex-col gap-2 mt-2">
+                                                    <p className="font-bold text-xs truncate text-white">{song.title}</p>
+                                                    <p className="text-[#a7a7a7] text-[10px] truncate mb-2">{song.artist}</p>
+                                                    <div className="flex items-center gap-1">
                                                         <select 
                                                             onChange={(e) => setSelectedAlbum(e.target.value)} 
                                                             value={selectedAlbum}
-                                                            className="bg-[#3E3E3E] text-white outline-none border border-gray-600 p-1 rounded-md w-full focus:border-gray-400 transition-colors text-xs"
+                                                            className="bg-[#242424] text-white outline-none border border-[#3E3E3E] p-0.5 rounded-md w-1/2 text-[10px] focus:border-[#1DB954] transition-colors"
                                                         >
                                                             <option value="none">No Album</option>
                                                             {albumData.map((item, index) => (
@@ -374,13 +415,13 @@ const SearchPage = () => {
                                                         <button 
                                                             onClick={() => handleAddSong(song)}
                                                             disabled={isSongAdded(song.id)}
-                                                            className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                                                            className={`text-[10px] px-1.5 py-0.5 rounded-full transition-colors w-1/2 ${
                                                                 isSongAdded(song.id)
-                                                                    ? 'bg-gray-600 cursor-not-allowed text-white'
-                                                                    : 'bg-[#1DB954] hover:bg-[#1ed760] text-white'
+                                                                    ? 'bg-[#3E3E3E] cursor-not-allowed text-[#a7a7a7]'
+                                                                    : 'bg-black hover:bg-[#1a1a1a] text-white'
                                                             }`}
                                                         >
-                                                            {isSongAdded(song.id) ? "Added" : "Add Song"}
+                                                            {isSongAdded(song.id) ? "Added" : "Add"}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -427,13 +468,30 @@ const SearchPage = () => {
                                 {(searchType === 'all' || searchType === 'albums') && searchResults.albums.length > 0 && (
                                     <section>
                                         <h2 className="text-2xl font-bold mb-4">Albums</h2>
-                                        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                                        <div className="grid gap-3 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
                                             {searchResults.albums.map(album => (
-                                                <AlbumItem 
-                                                    key={album.id} 
-                                                    album={album}
-                                                    showSpotifyLink={true}
-                                                />
+                                                <div key={album.id} className="bg-[#181818] p-2 rounded-lg hover:bg-[#282828] transition-colors group">
+                                                    <div className="relative mb-2">
+                                                        <img className="w-full aspect-square object-cover rounded-md" src={album.image} alt={album.title}/>
+                                                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md" />
+                                                    </div>
+                                                    <p className="font-bold text-xs truncate text-white">{album.title}</p>
+                                                    <p className="text-[#a7a7a7] text-[10px] truncate mb-1">{album.artist}</p>
+                                                    <div className="flex items-center gap-1">
+                                                        <p className="text-[#a7a7a7] text-[10px] w-1/2">{album.total_tracks || 0} tracks</p>
+                                                        <button 
+                                                            onClick={() => handleAddAlbum(album)}
+                                                            disabled={isAlbumAdded(album.id)}
+                                                            className={`text-[10px] px-1.5 py-0.5 rounded-full transition-colors w-1/2 ${
+                                                                isAlbumAdded(album.id)
+                                                                    ? 'bg-[#3E3E3E] cursor-not-allowed text-[#a7a7a7]'
+                                                                    : 'bg-black hover:bg-[#1a1a1a] text-white'
+                                                            }`}
+                                                        >
+                                                            {isAlbumAdded(album.id) ? "Added" : "Add"}
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             ))}
                                         </div>
                                     </section>

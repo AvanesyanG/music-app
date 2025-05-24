@@ -126,7 +126,7 @@ class SpotifyService {
     }
   }
 
-  async searchAlbums(query, limit = 10) {
+  async searchAlbums(query, limit = 20) {
     try {
       const data = await this.makeRequest('/search', {
         q: query,
@@ -298,7 +298,7 @@ class SpotifyService {
     }
   }
 
-  async searchArtists(query, limit = 10) {
+  async searchArtists(query, limit = 20) {
     try {
       const data = await this.makeRequest('/search', {
         q: query,
